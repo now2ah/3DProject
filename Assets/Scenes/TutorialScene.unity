@@ -2749,7 +2749,7 @@ Animator:
   m_GameObject: {fileID: 7263818537680554815}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 0e55d5c42cc96404f872b45455603f8b, type: 3}
-  m_Controller: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 35a77b7d1d73cce4c951c9497ff96dda, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 1
@@ -4447,13 +4447,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69f04c0981a579d45b8f97cfc5024f08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 5
+  moveSpeed: 2
   mouseSensityvity: 100
   cameraTransform: {fileID: 330585546}
   characterController: {fileID: 8035992753096135046}
   playerHeadTransform: {fileID: 8643955306608994255}
-  thirdPersonDistance: 3
-  thirdPersonOffset: {x: 0, y: 1, z: 0}
+  thirdPersonDistance: 2
+  thirdPersonOffset: {x: 0, y: 1.5, z: 0}
   playerLookTransform: {fileID: 2078992027}
   zoomDistance: 1
   zoomSpeed: 5

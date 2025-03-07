@@ -1,9 +1,11 @@
 using System;
+using System.Collections;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class PlayerManager : MonoBehaviour
 {
-    public float moveSpeed = 5.0f;
+    public float moveSpeed = 2.0f;
     public float mouseSensityvity = 100.0f;
     public Transform cameraTransform;
     public CharacterController characterController;
@@ -36,10 +38,36 @@ public class PlayerManager : MonoBehaviour
     private bool isGround;
     #endregion
 
+    private Animator animator;
+    private float horizontal;
+    private float vertical;
+
+    private bool isRunning = false;
+    public float walkSpeed = 2.0f;
+    public float runSpeed = 5.0f;
+
+    private bool isAiming = false;
+    private bool isFiring = false;
+    private Coroutine shootCoroutine;
+
+    public AudioClip audioClipFire;
+    private AudioSource audioSource;
+
+    public void SetTargetDistance(float distance)
+    {
+        camTargetDistance = distance;
+    }
+
+    public void SetTargetFov(float fov)
+    {
+        camTargetFov = fov;
+    }
+
     void _UpdateCameraPosition()
     {
         if (isRotateAroundPlayer)
         {
+            //camCurrentDistance = thirdPersonDistance;
             Vector3 direction = new Vector3(0f, 0f, -camCurrentDistance);
             Quaternion rotation = Quaternion.Euler(pitch, yaw, 0);
 
@@ -49,6 +77,7 @@ public class PlayerManager : MonoBehaviour
         }
         else
         {
+            //camCurrentDistance = thirdPersonDistance;
             transform.rotation = Quaternion.Euler(0f, yaw, 0);
 
             Vector3 direction = new Vector3(0, 0, -camCurrentDistance);
@@ -68,6 +97,16 @@ public class PlayerManager : MonoBehaviour
         pitch = Mathf.Clamp(pitch, -45f, 45f);
     }
 
+    void _GroundCheck()
+    {
+        isGround = characterController.isGrounded;
+
+        if (isGround && velocity.y < 0)
+        {
+            velocity.y = -2f;
+        }
+    }
+
     void _ProcessCameraModeInput()
     {
         if (Input.GetKeyDown(KeyCode.V))
@@ -85,8 +124,8 @@ public class PlayerManager : MonoBehaviour
 
     void _FirstPersonMovement()
     {
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical = Input.GetAxis("Vertical");
+        horizontal = Input.GetAxis("Horizontal");
+        vertical = Input.GetAxis("Vertical");
 
         //move character controller to camera's direction
         Vector3 moveDirection = cameraTransform.right * horizontal + cameraTransform.forward * vertical;
@@ -105,13 +144,110 @@ public class PlayerManager : MonoBehaviour
 
     void _ThirdPersonMovement()
     {
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical = Input.GetAxis("Vertical");
+        horizontal = Input.GetAxis("Horizontal");
+        vertical = Input.GetAxis("Vertical");
 
+        if (Input.GetKey(KeyCode.LeftShift))
+        {
+            isRunning = true;
+            moveSpeed = runSpeed;
+        }
+        else
+        {
+            isRunning = false;
+            moveSpeed = walkSpeed;
+        }
+        
         Vector3 moveDirection = transform.right * horizontal + transform.forward * vertical;
         characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
 
         _UpdateCameraPosition();
+    }
+
+    void _ProcessZoomInOut()
+    {
+        if (Input.GetMouseButtonDown(1))
+        {
+            //if zoomcoroutine is playing, stop it
+            if (zoomCoroutine != null)
+            {
+                StopCoroutine(zoomCoroutine);
+            }
+
+            //if it's first person mode start zoomFOV coroutine
+            if (isFirstPerson)
+            {
+                SetTargetFov(zoomFov);
+                zoomCoroutine = StartCoroutine(ZoomFieldOfViewCoroutine(camTargetFov));
+            }
+            //if not zoomDistance coroutine
+            else
+            {
+                isAiming = true;
+                SetTargetDistance(zoomDistance);
+                zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
+            }
+        }
+
+        if (Input.GetMouseButtonUp(1))
+        {
+            if (zoomCoroutine != null)
+            {
+                StopCoroutine(zoomCoroutine);
+            }
+
+            if (isFirstPerson)
+            {
+                SetTargetFov(defaultFov);
+                zoomCoroutine = StartCoroutine(ZoomFieldOfViewCoroutine(camTargetFov));
+            }
+            else
+            {
+                isAiming = false;
+                SetTargetDistance(thirdPersonDistance);
+                zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
+            }
+        }
+    }
+
+    IEnumerator ZoomCameraCoroutine(float targetDistance)
+    {
+        while(Mathf.Abs(camCurrentDistance - camTargetDistance) > 0.01f)
+        {
+            camCurrentDistance = Mathf.Lerp(camCurrentDistance, targetDistance, Time.deltaTime * zoomSpeed);
+            yield return null;
+        }
+
+        camCurrentDistance = targetDistance;
+    }
+
+    IEnumerator ZoomFieldOfViewCoroutine(float targetFov)
+    {
+        while (Mathf.Abs(mainCamera.fieldOfView - targetFov) > 0.01f)
+        {
+            mainCamera.fieldOfView = Mathf.Lerp(mainCamera.fieldOfView, targetFov, Time.deltaTime * zoomSpeed);
+            yield return null;
+        }
+
+        mainCamera.fieldOfView = targetFov;
+    }
+
+    void _ProcessFireRifle()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            animator.SetTrigger("FireTrigger");
+            audioSource.PlayOneShot(audioClipFire);
+        }
+    }
+
+    void _SetAnimationParams()
+    {
+        animator.SetFloat("Horizontal", horizontal);
+        animator.SetFloat("Vertical", vertical);
+        animator.SetBool("IsRunning", isRunning);
+        animator.SetBool("IsAiming", isAiming);
+        animator.SetBool("IsFiring", isFiring);
     }
 
     void Start()
@@ -122,19 +258,15 @@ public class PlayerManager : MonoBehaviour
         camTargetFov = defaultFov;
         mainCamera = cameraTransform.GetComponent<Camera>();
         mainCamera.fieldOfView = defaultFov;
+
+        animator = GetComponent<Animator>();
+        audioSource = GetComponent<AudioSource>();
     }
 
     void Update()
     {
         _ProcessMouseInput();
-
-        isGround = characterController.isGrounded;
-
-        if (isGround && velocity.y < 0)
-        {
-            velocity.y = -2f;
-        }
-
+        _GroundCheck();
         _ProcessCameraModeInput();
 
         if (isFirstPerson)
@@ -145,5 +277,14 @@ public class PlayerManager : MonoBehaviour
         {
             _ThirdPersonMovement();
         }
+
+        _ProcessZoomInOut();
+
+        if(isAiming)
+        {
+            _ProcessFireRifle();
+        }
+
+        _SetAnimationParams();
     }
 }
