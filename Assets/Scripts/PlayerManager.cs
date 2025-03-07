@@ -46,12 +46,15 @@ public class PlayerManager : MonoBehaviour
     public float walkSpeed = 2.0f;
     public float runSpeed = 5.0f;
 
+    public GameObject rifleObject;
     private bool isAiming = false;
     private bool isFiring = false;
     private Coroutine shootCoroutine;
 
     public AudioClip audioClipFire;
+    public AudioClip audioClipEquipWeapon;
     private AudioSource audioSource;
+    
 
     public void SetTargetDistance(float distance)
     {
@@ -241,13 +244,22 @@ public class PlayerManager : MonoBehaviour
         }
     }
 
+    void _ProcessChangeWeapons()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            audioSource.PlayOneShot(audioClipEquipWeapon);
+            animator.SetTrigger("IsWeaponChange");
+            rifleObject.SetActive(true);
+        }
+    }
+
     void _SetAnimationParams()
     {
         animator.SetFloat("Horizontal", horizontal);
         animator.SetFloat("Vertical", vertical);
         animator.SetBool("IsRunning", isRunning);
         animator.SetBool("IsAiming", isAiming);
-        animator.SetBool("IsFiring", isFiring);
     }
 
     void Start()
@@ -258,6 +270,7 @@ public class PlayerManager : MonoBehaviour
         camTargetFov = defaultFov;
         mainCamera = cameraTransform.GetComponent<Camera>();
         mainCamera.fieldOfView = defaultFov;
+        rifleObject.SetActive(false);
 
         animator = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
@@ -284,6 +297,8 @@ public class PlayerManager : MonoBehaviour
         {
             _ProcessFireRifle();
         }
+
+        _ProcessChangeWeapons();
 
         _SetAnimationParams();
     }
