@@ -3,6 +3,14 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
 
+public enum eSFX
+{
+    FIRE,
+    EQUIP,
+    BEHIT,
+    PICKUP
+}
+
 public class PlayerManager : MonoBehaviour
 {
     public float moveSpeed = 2.0f;
@@ -29,7 +37,7 @@ public class PlayerManager : MonoBehaviour
     private float pitch = 0.0f;
     private float yaw = 0.0f;
     private bool isFirstPerson = false;
-    private bool isRotateAroundPlayer = true;
+    private bool isRotateAroundPlayer = false;
 
     #region GRAVITY VARIABLES
     public float gravity = -9.81f;
@@ -43,19 +51,23 @@ public class PlayerManager : MonoBehaviour
     private float vertical;
 
     private bool isRunning = false;
+    private Coroutine beHitCoroutine = null;
+    private Coroutine pickUpCoroutine = null;
     public float walkSpeed = 2.0f;
     public float runSpeed = 5.0f;
 
     public GameObject rifleObject;
+    public Transform aimTarget;    
     private bool isAiming = false;
-    private bool isFiring = false;
-    private Coroutine shootCoroutine;
+    private float weaponMaxDistance = 100f;
+
 
     public AudioClip audioClipFire;
     public AudioClip audioClipEquipWeapon;
+    public AudioClip audioClipBeHit;
+    public AudioClip audioClipGetItem;
     private AudioSource audioSource;
     
-
     public void SetTargetDistance(float distance)
     {
         camTargetDistance = distance;
@@ -64,6 +76,59 @@ public class PlayerManager : MonoBehaviour
     public void SetTargetFov(float fov)
     {
         camTargetFov = fov;
+    }
+
+    public void PlayAudio(eSFX sfx)
+    {
+        if (null == audioSource)
+            return;
+
+        switch(sfx)
+        {
+            case eSFX.FIRE:
+                audioSource.PlayOneShot(audioClipFire);
+                break;
+
+            case eSFX.EQUIP:
+                audioSource.PlayOneShot(audioClipEquipWeapon);
+                break;
+
+            case eSFX.BEHIT:
+                audioSource.PlayOneShot(audioClipBeHit);
+                break;
+
+            case eSFX.PICKUP:
+                audioSource.PlayOneShot(audioClipGetItem);
+                break;
+        }
+    }
+
+    public void BeHit()
+    {
+        if (beHitCoroutine == null)
+        {
+            beHitCoroutine = StartCoroutine(BeHitCoroutine());
+        }
+    }
+
+    IEnumerator BeHitCoroutine()
+    {
+        if (animator != null)
+        {
+            animator.SetTrigger("IsHit");
+            PlayAudio(eSFX.BEHIT);
+            float animationLength = animator.GetCurrentAnimatorStateInfo(0).length;
+            yield return new WaitForSeconds(animationLength);
+            _WarpToStartPosition();
+            beHitCoroutine = null;
+        }
+    }
+
+    void _WarpToStartPosition()
+    {
+        characterController.enabled = false;
+        transform.position = Vector3.zero;
+        characterController.enabled = true;
     }
 
     void _UpdateCameraPosition()
@@ -87,6 +152,8 @@ public class PlayerManager : MonoBehaviour
 
             cameraTransform.position = playerLookTransform.position + thirdPersonOffset + Quaternion.Euler(pitch, yaw, 0) * direction;
             cameraTransform.LookAt(playerLookTransform.position + new Vector3(0, thirdPersonOffset.y, 0));
+
+            _UpdateAimTarget();
         }
     }
 
@@ -187,6 +254,7 @@ public class PlayerManager : MonoBehaviour
             else
             {
                 isAiming = true;
+                animator.SetLayerWeight(1, 1);
                 SetTargetDistance(zoomDistance);
                 zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
             }
@@ -207,6 +275,7 @@ public class PlayerManager : MonoBehaviour
             else
             {
                 isAiming = false;
+                animator.SetLayerWeight(1, 0);
                 SetTargetDistance(thirdPersonDistance);
                 zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
             }
@@ -240,7 +309,23 @@ public class PlayerManager : MonoBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             animator.SetTrigger("FireTrigger");
-            audioSource.PlayOneShot(audioClipFire);
+
+            Ray ray = new Ray(mainCamera.transform.position, mainCamera.transform.forward);
+            RaycastHit hit;
+            if (Physics.Raycast(ray, out hit, weaponMaxDistance))
+            {
+                Debug.Log(hit.collider.gameObject.name);
+                Debug.DrawLine(ray.origin, hit.point, Color.red);
+
+                if (hit.transform.TryGetComponent<ZombieManager>(out ZombieManager zombie))
+                {
+                    zombie.gameObject.SetActive(false);
+                }
+            }
+            else
+            {
+                Debug.DrawLine(ray.origin, ray.origin + ray.direction * weaponMaxDistance, Color.green);
+            }
         }
     }
 
@@ -248,10 +333,38 @@ public class PlayerManager : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
-            audioSource.PlayOneShot(audioClipEquipWeapon);
+            //audioSource.PlayOneShot(audioClipEquipWeapon);
             animator.SetTrigger("IsWeaponChange");
             rifleObject.SetActive(true);
         }
+    }
+
+    void _ProcessPickUp()
+    {
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            if (pickUpCoroutine != null)
+            {
+                StopCoroutine(pickUpCoroutine);
+            }
+
+            pickUpCoroutine = StartCoroutine(PickUpCoroutine());
+        }
+    }
+
+    IEnumerator PickUpCoroutine()
+    {
+        animator.SetLayerWeight(1, 0.8f);
+        animator.SetTrigger("IsPickUp");
+        float animationLength = animator.GetCurrentAnimatorStateInfo(1).length;
+        yield return new WaitForSeconds(animationLength);
+        animator.SetLayerWeight(1, 0);
+    }
+
+    void _UpdateAimTarget()
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        aimTarget.position = ray.GetPoint(10f);
     }
 
     void _SetAnimationParams()
@@ -299,7 +412,7 @@ public class PlayerManager : MonoBehaviour
         }
 
         _ProcessChangeWeapons();
-
+        _ProcessPickUp();
         _SetAnimationParams();
     }
 }
