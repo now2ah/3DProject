@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Animations.Rigging;
 using UnityEngine.Rendering;
 
 public enum eSFX
@@ -41,8 +43,9 @@ public class PlayerManager : MonoBehaviour
 
     #region GRAVITY VARIABLES
     public float gravity = -9.81f;
-    public float jumpHeight = 2.0f;
-    private Vector3 velocity;
+    public float jumpHeight = 2f;
+    private bool isJump = false;
+    private float verticalVelocity = 0f;
     private bool isGround;
     #endregion
 
@@ -56,11 +59,28 @@ public class PlayerManager : MonoBehaviour
     public float walkSpeed = 2.0f;
     public float runSpeed = 5.0f;
 
+    private bool isAiming = false;
+    private bool canFire = true;
+    private float weaponMaxDistance = 100f;
+    private float rifleShootDelay = 0.5f;
+    private Coroutine shootDelayCoroutine;
     public GameObject rifleObject;
     public Transform aimTarget;    
-    private bool isAiming = false;
-    private float weaponMaxDistance = 100f;
+    public LayerMask targetLayerMask;
+    public ParticleSystem muzzleFlashParticle;
 
+    public MultiAimConstraint multiAimConstraint;
+
+    public Vector3 boxSize = Vector3.one;
+    public float boxCastDistance = 5f;
+    public LayerMask itemLayerMask;
+    public Transform pickUpTransform;
+    private bool hasRifle = false;
+    private int bulletCount = 5;
+
+    public GameObject crossHairUI;
+    public GameObject rifleUI;
+    public GameObject bulletUI;
 
     public AudioClip audioClipFire;
     public AudioClip audioClipEquipWeapon;
@@ -108,6 +128,23 @@ public class PlayerManager : MonoBehaviour
         if (beHitCoroutine == null)
         {
             beHitCoroutine = StartCoroutine(BeHitCoroutine());
+        }
+    }
+
+    public void CreateItemBoxCast()
+    {
+        Vector3 origin = pickUpTransform.position;
+        Vector3 direction = pickUpTransform.forward;
+        RaycastHit[] hits = Physics.BoxCastAll(origin, boxSize / 2, direction, Quaternion.identity, boxCastDistance, itemLayerMask);
+        foreach (var hit in hits)
+        {
+            if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Item"))
+            {
+                hasRifle = true;
+                rifleUI.SetActive(true);
+            }
+
+            hit.collider.gameObject.SetActive(false);
         }
     }
 
@@ -167,23 +204,13 @@ public class PlayerManager : MonoBehaviour
         pitch = Mathf.Clamp(pitch, -45f, 45f);
     }
 
-    void _GroundCheck()
-    {
-        isGround = characterController.isGrounded;
-
-        if (isGround && velocity.y < 0)
-        {
-            velocity.y = -2f;
-        }
-    }
-
     void _ProcessCameraModeInput()
     {
-        if (Input.GetKeyDown(KeyCode.V))
-        {
-            isFirstPerson = !isFirstPerson;
-            Debug.Log(isFirstPerson ? "first person mode" : "third person mode");
-        }
+        //if (Input.GetKeyDown(KeyCode.V))
+        //{
+        //    isFirstPerson = !isFirstPerson;
+        //    Debug.Log(isFirstPerson ? "first person mode" : "third person mode");
+        //}
 
         if (Input.GetKeyDown(KeyCode.F))
         {
@@ -227,11 +254,21 @@ public class PlayerManager : MonoBehaviour
             isRunning = false;
             moveSpeed = walkSpeed;
         }
-        
-        Vector3 moveDirection = transform.right * horizontal + transform.forward * vertical;
+
+        if (characterController.isGrounded && verticalVelocity < 0f)
+            verticalVelocity = 0f;
+
+        verticalVelocity += gravity * Time.deltaTime;
+
+        Vector3 moveDirection = transform.right * horizontal + transform.forward * vertical + transform.up * verticalVelocity;
         characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
 
         _UpdateCameraPosition();
+    }
+
+    float _CalculateJumpMagnitude()
+    {
+        return jumpHeight * Mathf.Sqrt(2 * gravity);
     }
 
     void _ProcessZoomInOut()
@@ -254,6 +291,7 @@ public class PlayerManager : MonoBehaviour
             else
             {
                 isAiming = true;
+                crossHairUI.SetActive(true);
                 animator.SetLayerWeight(1, 1);
                 SetTargetDistance(zoomDistance);
                 zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
@@ -275,6 +313,8 @@ public class PlayerManager : MonoBehaviour
             else
             {
                 isAiming = false;
+                crossHairUI.SetActive(false);
+                //multiAimConstraint.data.offset = Vector3.zero;
                 animator.SetLayerWeight(1, 0);
                 SetTargetDistance(thirdPersonDistance);
                 zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
@@ -306,32 +346,87 @@ public class PlayerManager : MonoBehaviour
 
     void _ProcessFireRifle()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (canFire && bulletCount > 0 && Input.GetMouseButtonDown(0))
         {
             animator.SetTrigger("FireTrigger");
 
             Ray ray = new Ray(mainCamera.transform.position, mainCamera.transform.forward);
-            RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, weaponMaxDistance))
-            {
-                Debug.Log(hit.collider.gameObject.name);
-                Debug.DrawLine(ray.origin, hit.point, Color.red);
+            
+            //single hit
+            //RaycastHit hit;
+            //if (Physics.Raycast(ray, out hit, weaponMaxDistance, targetLayerMask))
+            //{
+            //    Debug.Log(hit.collider.gameObject.name);
+            //    Debug.DrawLine(ray.origin, hit.point, Color.red);
 
-                if (hit.transform.TryGetComponent<ZombieManager>(out ZombieManager zombie))
+            //    if (hit.transform.TryGetComponent<ZombieManager>(out ZombieManager zombie))
+            //    {
+            //        zombie.gameObject.SetActive(false);
+            //    }
+            //}
+            //else
+            //{
+            //    Debug.DrawLine(ray.origin, ray.origin + ray.direction * weaponMaxDistance, Color.green);
+            //}
+
+            //multi hit
+            RaycastHit[] hits = Physics.RaycastAll(ray, weaponMaxDistance, targetLayerMask);
+            if (hits.Length > 0)
+            {
+                int hitCount = 4;
+                RaycastHitCompare compare = new RaycastHitCompare();
+
+                Array.Sort(hits, compare);
+
+                for(int i=0; i<hits.Length; ++i)
                 {
-                    zombie.gameObject.SetActive(false);
+                    if (hitCount <= 0)
+                        break;
+
+                    hits[i].transform.gameObject.SetActive(false);
+                    hitCount--;
                 }
             }
-            else
+
+            muzzleFlashParticle.gameObject.SetActive(true);
+            muzzleFlashParticle.Play(true);
+
+            bulletCount--;
+
+            if (shootDelayCoroutine == null)
             {
-                Debug.DrawLine(ray.origin, ray.origin + ray.direction * weaponMaxDistance, Color.green);
+                shootDelayCoroutine = StartCoroutine(ShootDelayCoroutine());
             }
         }
     }
 
+    class RaycastHitCompare : IComparer
+    {
+        public int Compare(object x, object y)
+        {
+            RaycastHit rayHitX = (RaycastHit)x;
+            RaycastHit rayHitY = (RaycastHit)y;
+
+            if (rayHitX.distance > rayHitY.distance)
+                return 1;
+            else if (rayHitX.distance < rayHitY.distance)
+                return -1;
+            else
+                return 0;
+        }
+    }
+
+    IEnumerator ShootDelayCoroutine()
+    {
+        canFire = false;
+        yield return new WaitForSeconds(rifleShootDelay);
+        canFire = true;
+        shootDelayCoroutine = null;
+    }
+
     void _ProcessChangeWeapons()
     {
-        if (Input.GetKeyDown(KeyCode.Alpha1))
+        if (hasRifle && Input.GetKeyDown(KeyCode.Alpha1))
         {
             //audioSource.PlayOneShot(audioClipEquipWeapon);
             animator.SetTrigger("IsWeaponChange");
@@ -367,6 +462,14 @@ public class PlayerManager : MonoBehaviour
         aimTarget.position = ray.GetPoint(10f);
     }
 
+    void _ProcessJump()
+    {
+        if (Input.GetKeyDown(KeyCode.Space) && characterController.isGrounded)
+        {
+            verticalVelocity += Mathf.Sqrt(jumpHeight * -3f * gravity);
+        }
+    }
+
     void _SetAnimationParams()
     {
         animator.SetFloat("Horizontal", horizontal);
@@ -392,19 +495,12 @@ public class PlayerManager : MonoBehaviour
     void Update()
     {
         _ProcessMouseInput();
-        _GroundCheck();
         _ProcessCameraModeInput();
+        _ThirdPersonMovement();
+        _ProcessJump();
 
-        if (isFirstPerson)
-        {
-            _FirstPersonMovement();
-        }
-        else
-        {
-            _ThirdPersonMovement();
-        }
-
-        _ProcessZoomInOut();
+        if (hasRifle)
+            _ProcessZoomInOut();
 
         if(isAiming)
         {
