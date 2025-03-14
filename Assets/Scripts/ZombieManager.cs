@@ -12,25 +12,50 @@ public class ZombieManager : MonoBehaviour
         DIE
     }
 
+    public enum EZombieSFX
+    {
+        IDLE,
+        ATTACK
+    }
+
+    private Animator animator;
+
     public float moveSpeed = 2f;
     public float attackRange = 1f;
     public float attackDelay = 2f;
     public Transform[] patrolPoints;
-    public float trackingRange = 3f;
     public float transitionTime = 2f;
     public float detectRange = 3f;
 
     private bool isPatrol = true;
     private bool isAttack = false;
     private int patrolPointIndex = 0;
-    private float nextAttackTime = 0f;
+    private float nextAttackTime = 3f;
     private Transform target;
-    private EZombieState currentState = EZombieState.IDLE;
+    [SerializeField] private EZombieState currentState = EZombieState.IDLE;
     private float evadeRange = 5f;
     private float zombieHP = 10f;
     private float distanceToTarget;
     private bool isTransition = false;
     private Coroutine attackCoroutine;
+    private Coroutine currentCoroutine;
+
+    private AudioSource audioSource;
+    public AudioClip audioClipZombieIdle;
+    public AudioClip audioClipZombieAttack;
+
+    public void PlayAudio(EZombieSFX sfx)
+    {
+        if (sfx == EZombieSFX.IDLE)
+        {
+            audioSource.clip = audioClipZombieIdle;
+            audioSource.Play();
+        }
+        else if (sfx == EZombieSFX.ATTACK)
+        {
+            audioSource.PlayOneShot(audioClipZombieAttack);
+        }
+    }
 
     public void DeliverDamage(float damage)
     {
@@ -43,23 +68,173 @@ public class ZombieManager : MonoBehaviour
         }
     }
 
-    void _DetectPlayer()
+    public void ChangeState(EZombieState newState)
+    {
+        if (currentCoroutine != null)
+        {
+            StopCoroutine(currentCoroutine);
+        }
+
+        currentState = newState;
+
+        switch(currentState)
+        {
+            case EZombieState.IDLE:
+                currentCoroutine = StartCoroutine(IdleCoroutine());
+                break;
+            case EZombieState.ROAM:
+                currentCoroutine = StartCoroutine(RoamCoroutine());
+                break;
+            case EZombieState.CHASE:
+                currentCoroutine = StartCoroutine(ChaseCoroutine());
+                break;
+            case EZombieState.ATTACK:
+                currentCoroutine = StartCoroutine(AttackCoroutine());
+                break;
+        }
+    }
+
+    IEnumerator IdleCoroutine()
+    {
+        animator.Play("Z_Idle");
+
+        while(currentState == EZombieState.IDLE)
+        {
+            if (_IsDetectedPlayer())
+                ChangeState(EZombieState.CHASE);
+            else if (_IsInAttackRange())
+                ChangeState(EZombieState.ATTACK);
+            else
+                ChangeState(EZombieState.ROAM);
+
+                yield return null;
+        }
+    }
+
+    IEnumerator RoamCoroutine()
+    {
+        while (currentState == EZombieState.ROAM)
+        {
+            animator.Play("Z_Run");
+            _Patrol();
+
+            if (_IsDetectedPlayer())
+                ChangeState(EZombieState.CHASE);
+
+            yield return null;
+        }
+    }
+
+    IEnumerator ChaseCoroutine()
+    {
+        animator.Play("Z_Run");
+        while (currentState == EZombieState.CHASE)
+        {
+            _Chase(target);
+
+            if (!_IsDetectedPlayer())
+                ChangeState(EZombieState.IDLE);
+
+            if (_IsInAttackRange())
+                ChangeState(EZombieState.ATTACK);
+
+            yield return null;
+        }
+    }
+
+    IEnumerator AttackCoroutine()
+    {
+        animator.Play("Z_Attack");
+        yield return new WaitForSeconds(attackDelay);
+        ChangeState(EZombieState.IDLE);
+    }
+
+    private void Awake()
+    {
+        animator = GetComponent<Animator>();
+    }
+
+    private void Start()
+    {
+        ChangeState(EZombieState.IDLE);
+    }
+
+    private void Update()
+    {
+        //switch (currentState)
+        //{
+        //    case EZombieState.IDLE:
+        //        currentState = EZombieState.ROAM;
+        //        break;
+
+        //    case EZombieState.ROAM:
+        //        animator.SetBool("IsRun", true);
+        //        _Patrol();
+
+        //        if (_IsDetectedPlayer())
+        //        {
+        //            currentState = EZombieState.CHASE;
+        //        }
+        //        break;
+
+        //    case EZombieState.CHASE:
+        //        if (_IsDetectedPlayer())
+        //        {
+        //            _Chase(target);
+        //        }
+        //        else
+        //        {
+        //            currentState = EZombieState.IDLE;
+        //        }
+
+        //        if (_IsInAttackRange())
+        //        {
+        //            currentState = EZombieState.ATTACK;
+        //        }
+        //        break;
+
+        //    case EZombieState.ATTACK:
+        //        if (nextAttackTime > attackDelay)
+        //        {
+        //            _Attack(target);
+        //            nextAttackTime = 0f;
+        //        }
+        //        nextAttackTime += Time.deltaTime;
+        //        break;
+
+        //    case EZombieState.DIE:
+        //        _Die();
+        //        break;
+        //}
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject.CompareTag("Player"))
+        {
+            if (other.TryGetComponent<PlayerManager>(out PlayerManager player))
+            {
+                player.BeHit();
+            }
+        }
+    }
+
+    bool _IsDetectedPlayer()
     {
         if (target == null) { target = GameObject.FindGameObjectWithTag("Player").transform; }
-        
+
         distanceToTarget = Vector3.Distance(transform.position, target.position);
         if (distanceToTarget < detectRange)
         {
-            Vector3 direction = (target.position - transform.position).normalized;
-            transform.LookAt(direction);
-
-            if (!isAttack)
-                _Move(direction);
+            return true;
         }
-
-        if (distanceToTarget < attackRange)
+        else
         {
-            _Attack(target);
+            return false;
         }
     }
 
@@ -78,12 +253,15 @@ public class ZombieManager : MonoBehaviour
         attackCoroutine = StartCoroutine(AttackCoroutine());
     }
 
-    IEnumerator AttackCoroutine()
-    {
-        isAttack = true;
-        yield return new WaitForSeconds(attackDelay);
-        isAttack = false;
-    }
+    //IEnumerator AttackCoroutine()
+    //{
+    //    isAttack = true;
+    //    animator.SetBool("IsAttack", isAttack);
+    //    yield return new WaitForSeconds(attackDelay);
+    //    isAttack = false;
+    //    animator.SetBool("IsAttack", isAttack);
+    //    currentState = EZombieState.IDLE;
+    //}
 
     void _Patrol()
     {
@@ -98,26 +276,32 @@ public class ZombieManager : MonoBehaviour
         }
     }
 
-    private void Update()
+    void _Chase(Transform target)
     {
-        _DetectPlayer();
+        //isPatrol = false;
+        Vector3 direction = (target.position - transform.position).normalized;
+        transform.LookAt(target.position);
+        //if (!isAttack)
+            _Move(direction);
 
-        if (isPatrol) { _Patrol(); }
+        //if (!_IsDetectedPlayer())
+        //    isPatrol = true;
     }
 
-    private void OnCollisionEnter(Collision collision)
+    bool _IsInAttackRange()
     {
-        Debug.Log(collision.gameObject.name);
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.gameObject.CompareTag("Player"))
+        if (distanceToTarget < attackRange)
         {
-            if (other.TryGetComponent<PlayerManager>(out PlayerManager player))
-            {
-                player.BeHit();
-            }
+            return true;
         }
+        else
+        {
+            return false;
+        }    
+    }
+
+    void _Die()
+    {
+
     }
 }

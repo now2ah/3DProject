@@ -87,7 +87,52 @@ public class PlayerManager : MonoBehaviour
     public AudioClip audioClipBeHit;
     public AudioClip audioClipGetItem;
     private AudioSource audioSource;
-    
+
+    private void OnEnable()
+    {
+        InputManager.Instance.OnLookInput += _ProcessMouseInput;
+        InputManager.Instance.OnMoveInput += _ProcessMovement;
+        InputManager.Instance.OnFireInput += _Fire;
+        InputManager.Instance.OnPickUpInput += _PickUp;
+        InputManager.Instance.OnJumpInput += _Jump;
+    }
+
+    void Start()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        camCurrentDistance = thirdPersonDistance;
+        camTargetDistance = thirdPersonDistance;
+        camTargetFov = defaultFov;
+        mainCamera = cameraTransform.GetComponent<Camera>();
+        mainCamera.fieldOfView = defaultFov;
+        rifleObject.SetActive(false);
+
+        animator = GetComponent<Animator>();
+        audioSource = GetComponent<AudioSource>();
+
+
+        
+    }
+
+    void Update()
+    {
+        //_ProcessMouseInput();
+        _ProcessCameraModeInput();
+        //_ProcessMovement();
+        //_ProcessJump();
+
+        if (hasRifle)
+            _ProcessZoomInOut();
+
+        //if (isAiming)
+        //{
+        //    _Fire();
+        //}
+
+        _ProcessChangeWeapons();
+        _SetAnimationParams();
+    }
+
     public void SetTargetDistance(float distance)
     {
         camTargetDistance = distance;
@@ -135,13 +180,15 @@ public class PlayerManager : MonoBehaviour
     {
         Vector3 origin = pickUpTransform.position;
         Vector3 direction = pickUpTransform.forward;
+        _DrawDebugBox(origin, direction);
         RaycastHit[] hits = Physics.BoxCastAll(origin, boxSize / 2, direction, Quaternion.identity, boxCastDistance, itemLayerMask);
         foreach (var hit in hits)
         {
             if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Item"))
             {
                 hasRifle = true;
-                rifleUI.SetActive(true);
+                UIManager.Instance.SetActiveUI(EUIObject.RIFLE, true);
+                //rifleUI.SetActive(true);
             }
 
             hit.collider.gameObject.SetActive(false);
@@ -194,10 +241,13 @@ public class PlayerManager : MonoBehaviour
         }
     }
 
-    void _ProcessMouseInput()
+    void _ProcessMouseInput(object sender, Vector2 mouseInput)
     {
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensityvity * Time.deltaTime;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensityvity * Time.deltaTime;
+        //float mouseX = Input.GetAxis("Mouse X") * mouseSensityvity * Time.deltaTime * 2f;
+        //float mouseY = Input.GetAxis("Mouse Y") * mouseSensityvity * Time.deltaTime;
+
+        float mouseX = mouseInput.x * mouseSensityvity * Time.deltaTime * 2f;
+        float mouseY = mouseInput.y * mouseSensityvity * Time.deltaTime;
 
         yaw += mouseX;
         pitch -= mouseY;
@@ -239,10 +289,13 @@ public class PlayerManager : MonoBehaviour
         transform.rotation = Quaternion.Euler(0f, cameraTransform.eulerAngles.y, 0f);
     }
 
-    void _ThirdPersonMovement()
+    void _ProcessMovement(object o, Vector2 inputAxis)
     {
-        horizontal = Input.GetAxis("Horizontal");
-        vertical = Input.GetAxis("Vertical");
+        //horizontal = Input.GetAxis("Horizontal");
+        //vertical = Input.GetAxis("Vertical");
+
+        horizontal = inputAxis.x;
+        vertical = inputAxis.y;
 
         if (Input.GetKey(KeyCode.LeftShift))
         {
@@ -291,7 +344,8 @@ public class PlayerManager : MonoBehaviour
             else
             {
                 isAiming = true;
-                crossHairUI.SetActive(true);
+                UIManager.Instance.SetActiveUI(EUIObject.CROSSHAIR, true);
+                //crossHairUI.SetActive(true);
                 animator.SetLayerWeight(1, 1);
                 SetTargetDistance(zoomDistance);
                 zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
@@ -313,7 +367,8 @@ public class PlayerManager : MonoBehaviour
             else
             {
                 isAiming = false;
-                crossHairUI.SetActive(false);
+                UIManager.Instance.SetActiveUI(EUIObject.CROSSHAIR, false);
+                //crossHairUI.SetActive(false);
                 //multiAimConstraint.data.offset = Vector3.zero;
                 animator.SetLayerWeight(1, 0);
                 SetTargetDistance(thirdPersonDistance);
@@ -344,8 +399,11 @@ public class PlayerManager : MonoBehaviour
         mainCamera.fieldOfView = targetFov;
     }
 
-    void _ProcessFireRifle()
+    void _Fire(object sender, EventArgs e)
     {
+        if (!isAiming)
+            return;
+
         if (canFire && bulletCount > 0 && Input.GetMouseButtonDown(0))
         {
             animator.SetTrigger("FireTrigger");
@@ -434,17 +492,14 @@ public class PlayerManager : MonoBehaviour
         }
     }
 
-    void _ProcessPickUp()
+    void _PickUp(object sender, EventArgs e)
     {
-        if (Input.GetKeyDown(KeyCode.E))
+        if (pickUpCoroutine != null)
         {
-            if (pickUpCoroutine != null)
-            {
-                StopCoroutine(pickUpCoroutine);
-            }
-
-            pickUpCoroutine = StartCoroutine(PickUpCoroutine());
+            StopCoroutine(pickUpCoroutine);
         }
+
+        pickUpCoroutine = StartCoroutine(PickUpCoroutine());
     }
 
     IEnumerator PickUpCoroutine()
@@ -462,11 +517,12 @@ public class PlayerManager : MonoBehaviour
         aimTarget.position = ray.GetPoint(10f);
     }
 
-    void _ProcessJump()
+    void _Jump(object sender, EventArgs e)
     {
-        if (Input.GetKeyDown(KeyCode.Space) && characterController.isGrounded)
+        if (characterController.isGrounded)
         {
             verticalVelocity += Mathf.Sqrt(jumpHeight * -3f * gravity);
+            animator.SetTrigger("JumpTrigger");
         }
     }
 
@@ -478,37 +534,31 @@ public class PlayerManager : MonoBehaviour
         animator.SetBool("IsAiming", isAiming);
     }
 
-    void Start()
+    void _DrawDebugBox(Vector3 origin, Vector3 direction)
     {
-        Cursor.lockState = CursorLockMode.Locked;
-        camCurrentDistance = thirdPersonDistance;
-        camTargetDistance = thirdPersonDistance;
-        camTargetFov = defaultFov;
-        mainCamera = cameraTransform.GetComponent<Camera>();
-        mainCamera.fieldOfView = defaultFov;
-        rifleObject.SetActive(false);
+        Vector3 endPoint = origin + direction * boxCastDistance;
 
-        animator = GetComponent<Animator>();
-        audioSource = GetComponent<AudioSource>();
-    }
-
-    void Update()
-    {
-        _ProcessMouseInput();
-        _ProcessCameraModeInput();
-        _ThirdPersonMovement();
-        _ProcessJump();
-
-        if (hasRifle)
-            _ProcessZoomInOut();
-
-        if(isAiming)
-        {
-            _ProcessFireRifle();
-        }
-
-        _ProcessChangeWeapons();
-        _ProcessPickUp();
-        _SetAnimationParams();
+        Vector3[] corners = new Vector3[8];
+        corners[0] = origin + new Vector3(-boxSize.x, -boxSize.y, -boxSize.z) / 2;
+        corners[1] = origin + new Vector3(boxSize.x, -boxSize.y, -boxSize.z) / 2;
+        corners[2] = origin + new Vector3(-boxSize.x, boxSize.y, -boxSize.z) / 2;
+        corners[3] = origin + new Vector3(boxSize.x, boxSize.y, -boxSize.z) / 2;
+        corners[4] = origin + new Vector3(-boxSize.x, -boxSize.y, boxSize.z) / 2;
+        corners[5] = origin + new Vector3(boxSize.x, -boxSize.y, boxSize.z) / 2;
+        corners[6] = origin + new Vector3(-boxSize.x, boxSize.y, boxSize.z) / 2;
+        corners[7] = origin + new Vector3(boxSize.x, boxSize.y, boxSize.z) / 2;
+        
+        Debug.DrawLine(corners[0], corners[1], Color.green, 3f);
+        Debug.DrawLine(corners[1], corners[3], Color.green, 3f);
+        Debug.DrawLine(corners[3], corners[2], Color.green, 3f);
+        Debug.DrawLine(corners[2], corners[0], Color.green, 3f);
+        Debug.DrawLine(corners[4], corners[5], Color.green, 3f);
+        Debug.DrawLine(corners[5], corners[7], Color.green, 3f);
+        Debug.DrawLine(corners[7], corners[6], Color.green, 3f);
+        Debug.DrawLine(corners[6], corners[4], Color.green, 3f);
+        Debug.DrawLine(corners[0], corners[4], Color.green, 3f);
+        Debug.DrawLine(corners[1], corners[5], Color.green, 3f);
+        Debug.DrawLine(corners[2], corners[6], Color.green, 3f);
+        Debug.DrawLine(corners[3], corners[7], Color.green, 3f);
     }
 }
