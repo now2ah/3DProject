@@ -5,11 +5,9 @@ using UnityEngine;
 public class GameManager : Singleton<GameManager>
 {
     public GameObject playerStartPointObject;
-    
-    public bool isRunning = false;
 
     [SerializeField] private GameObject[] _managers;
-
+    [SerializeField] private bool isRunning = false;
     //fix later
     [SerializeField] private GameObject playerPrefab;
 

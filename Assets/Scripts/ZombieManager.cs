@@ -30,6 +30,8 @@ public class ZombieManager : MonoBehaviour
     public float transitionTime = 2f;
     public float detectRange = 3f;
 
+    public GameObject attackTrigger;
+
     private bool isPatrol = true;
     private bool isAttack = false;
     private int patrolPointIndex = 0;
@@ -107,10 +109,6 @@ public class ZombieManager : MonoBehaviour
         //        _Die();
         //        break;
         //}
-    }
-
-    private void OnCollisionEnter(Collision collision)
-    {
     }
 
     private void OnTriggerEnter(Collider other)

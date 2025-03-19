@@ -38,74 +38,74 @@ public class PlayerStatsForUI
 
 public class PlayerManager : MonoBehaviour
 {
-    public float moveSpeed = 2.0f;
+    [Header("Input")]
     public float mouseSensityvity = 100.0f;
-    public CharacterController characterController;
-    public Transform playerHeadTransform;
+
+    [Header("Camera")]
     public float thirdPersonDistance = 3.0f;
     public Vector3 thirdPersonOffset = new Vector3(0f, 1.0f, 0f);
-    public Transform playerLookTransform;
-
     public float zoomDistance = 1.0f;
     public float zoomSpeed = 5.0f;
     public float defaultFov = 60.0f;
     public float zoomFov = 30.0f;
-    private Transform cameraTransform;
 
-    private float camCurrentDistance;
-    private float camTargetDistance;
-    private float camTargetFov;
-    private Coroutine zoomCoroutine;
-    private Camera mainCamera;
-
-    private float pitch = 0.0f;
-    private float yaw = 0.0f;
-    private bool isFirstPerson = false;
-    private bool isRotateAroundPlayer = false;
-
-    #region GRAVITY VARIABLES
-    public float gravity = -9.81f;
+    [Header("Move")]
     public float jumpHeight = 2f;
-    private bool isJump = false;
-    private float verticalVelocity = 0f;
-    private bool isGround;
-    #endregion
-
-    private Animator animator;
-    private float horizontal;
-    private float vertical;
-
-    private bool isRunning = false;
-    private Coroutine beHitCoroutine = null;
-    private Coroutine pickUpCoroutine = null;
     public float walkSpeed = 2.0f;
     public float runSpeed = 5.0f;
 
-    private bool isAiming = false;
-    private bool canFire = true;
-    private float weaponMaxDistance = 100f;
-    private float rifleShootDelay = 0.5f;
-    private int currentBulletcount = 5;
-    private int maxBulletCount = 5;
-    private Coroutine shootDelayCoroutine;
+    [Header("Item")]
+    public LayerMask itemLayerMask;
+
+    [Header("Weapon")]
     public GameObject rifleObject;
-    public Transform aimTarget;    
     public LayerMask targetLayerMask;
     public ParticleSystem muzzleFlashParticle;
     public ParticleSystem hitParticle;
 
-    public MultiAimConstraint multiAimConstraint;
+    //camera
+    private Transform _cameraTransform;
+    private Camera _mainCamera;
+    private float _currentCamDistance;
+    private float _targetCamDistance;
+    private float _targetFov;
+    private Coroutine _zoomCoroutine;
 
-    public Vector3 boxSize = Vector3.one;
-    public float boxCastDistance = 5f;
-    public LayerMask itemLayerMask;
+    //jump
+    private float _gravity = -9.81f;
+    private float _verticalVelocity = 0f;
+
+    //components
+    private CharacterController _characterController;
+    private Animator _animator;
+    private Transform _playerLookTransform;
+
+    //move
+    private bool _isRunning = false;
+    private float _horizontal;
+    private float _vertical;
+    private float _pitch = 0.0f;
+    private float _yaw = 0.0f;
+    private float _currentSpeed = 2.0f;
+    
+    //shooting
+    private bool _isAiming = false;
+    private bool _canFire = true;
+
+    //weapon
+    private float weaponMaxDistance = 100f;
+    private float rifleShootDelay = 0.5f;
+    private int currentBulletcount = 5;
+    private int maxBulletCount = 5;
+    
+    private Coroutine _beHitCoroutine = null;
+    private Coroutine _pickUpCoroutine = null;
+    private Coroutine shootDelayCoroutine = null;
+
+    
     public Transform pickUpTransform;
     private bool hasRifle = false;
     private int bulletCount = 5;
-
-    //public GameObject crossHairUI;
-    //public GameObject rifleUI;
-    //public GameObject bulletUI;
 
     public AudioClip audioClipFire;
     public AudioClip audioClipEquipWeapon;
@@ -127,25 +127,43 @@ public class PlayerManager : MonoBehaviour
         InputManager.Instance.OnJumpInput += _Jump;
     }
 
+    private void Awake()
+    {
+        _characterController = GetComponent<CharacterController>();
+        _animator = GetComponent<Animator>();
+
+        Transform[] transforms = GetComponentsInChildren<Transform>();
+        foreach(var tr in transforms)
+        {
+            if (tr.gameObject.name == "PlayerLookObj")
+            {
+                _playerLookTransform = tr;
+                break;
+            }
+        }
+
+        audioSource = GetComponent<AudioSource>();
+    }
+
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
-        camCurrentDistance = thirdPersonDistance;
-        camTargetDistance = thirdPersonDistance;
-        camTargetFov = defaultFov;
-        cameraTransform = Camera.main.transform;
-        mainCamera = cameraTransform.GetComponent<Camera>();
-        mainCamera.fieldOfView = defaultFov;
-        rifleObject.SetActive(false);
 
-        animator = GetComponent<Animator>();
-        audioSource = GetComponent<AudioSource>();
+        _cameraTransform = Camera.main.transform;
+        _mainCamera = _cameraTransform.GetComponent<Camera>();
+        
+        _currentCamDistance = thirdPersonDistance;
+        _targetCamDistance = thirdPersonDistance;
+        _targetFov = defaultFov;
+        
+        _mainCamera.fieldOfView = defaultFov;
+        rifleObject.SetActive(false);
     }
 
     void Update()
     {
         //_ProcessMouseInput();
-        _ProcessCameraModeInput();
+        //_ProcessCameraModeInput();
         //_ProcessMovement();
         //_ProcessJump();
 
@@ -160,14 +178,22 @@ public class PlayerManager : MonoBehaviour
         _SetAnimationParams();
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.tag == "Item")
+        {
+
+        }
+    }
+
     public void SetTargetDistance(float distance)
     {
-        camTargetDistance = distance;
+        _targetCamDistance = distance;
     }
 
     public void SetTargetFov(float fov)
     {
-        camTargetFov = fov;
+        _targetFov = fov;
     }
 
     public void PlayAudio(eSFX sfx)
@@ -197,17 +223,21 @@ public class PlayerManager : MonoBehaviour
 
     public void BeHit()
     {
-        if (beHitCoroutine == null)
+        if (_beHitCoroutine == null)
         {
-            beHitCoroutine = StartCoroutine(BeHitCoroutine());
+            _beHitCoroutine = StartCoroutine(BeHitCoroutine());
         }
     }
 
+    // 나중에 하나씩 logic 변경
     public void CreateItemBoxCast()
     {
         Vector3 origin = pickUpTransform.position;
         Vector3 direction = pickUpTransform.forward;
-        _DrawDebugBox(origin, direction);
+        Vector3 boxSize = Vector3.one;
+        float boxCastDistance = 5f;
+
+        //_DrawDebugBox(origin, direction);
         RaycastHit[] hits = Physics.BoxCastAll(origin, boxSize / 2, direction, Quaternion.identity, boxCastDistance, itemLayerMask);
         foreach (var hit in hits)
         {
@@ -215,8 +245,6 @@ public class PlayerManager : MonoBehaviour
             {
                 hasRifle = true;
                 OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
-                //UIManager.Instance.SetActiveUI(EUIObject.RIFLE, true);
-                //rifleUI.SetActive(true);
             }
 
             hit.collider.gameObject.SetActive(false);
@@ -225,136 +253,69 @@ public class PlayerManager : MonoBehaviour
 
     PlayerStatsForUI _GetPlayerStats()
     {
-        return new PlayerStatsForUI(hasRifle, isAiming, currentBulletcount, maxBulletCount);
+        return new PlayerStatsForUI(hasRifle, _isAiming, currentBulletcount, maxBulletCount);
     }
 
     IEnumerator BeHitCoroutine()
     {
-        if (animator != null)
+        if (_animator != null)
         {
-            animator.SetTrigger("IsHit");
+            _animator.SetTrigger("IsHit");
             PlayAudio(eSFX.BEHIT);
-            float animationLength = animator.GetCurrentAnimatorStateInfo(0).length;
-            yield return new WaitForSeconds(animationLength);
-            _WarpToStartPosition();
-            beHitCoroutine = null;
+            //float animationLength = _animator.GetCurrentAnimatorStateInfo(0).length;
+            //yield return new WaitForSeconds(animationLength);
+            //_WarpToStartPosition();
+            yield return null;
+            _beHitCoroutine = null;
         }
-    }
-
-    void _WarpToStartPosition()
-    {
-        characterController.enabled = false;
-        transform.position = Vector3.zero;
-        characterController.enabled = true;
     }
 
     void _UpdateCameraPosition()
     {
-        if (isRotateAroundPlayer)
-        {
-            //camCurrentDistance = thirdPersonDistance;
-            Vector3 direction = new Vector3(0f, 0f, -camCurrentDistance);
-            Quaternion rotation = Quaternion.Euler(pitch, yaw, 0);
+        //_currentCamDistance = thirdPersonDistance;
+        transform.rotation = Quaternion.Euler(0f, _yaw, 0);
 
-            cameraTransform.position = transform.position + thirdPersonOffset + rotation * direction;
+        Vector3 direction = new Vector3(0, 0, -_currentCamDistance);
 
-            cameraTransform.LookAt(transform.position + new Vector3(0, thirdPersonOffset.y, 0));
-        }
-        else
-        {
-            //camCurrentDistance = thirdPersonDistance;
-            transform.rotation = Quaternion.Euler(0f, yaw, 0);
-
-            Vector3 direction = new Vector3(0, 0, -camCurrentDistance);
-
-            cameraTransform.position = playerLookTransform.position + thirdPersonOffset + Quaternion.Euler(pitch, yaw, 0) * direction;
-            cameraTransform.LookAt(playerLookTransform.position + new Vector3(0, thirdPersonOffset.y, 0));
-
-            _UpdateAimTarget();
-        }
+        _cameraTransform.position = _playerLookTransform.position + thirdPersonOffset + Quaternion.Euler(_pitch, _yaw, 0) * direction;
+        _cameraTransform.LookAt(_playerLookTransform.position + new Vector3(0, thirdPersonOffset.y, 0));
     }
 
     void _ProcessMouseInput(object sender, Vector2 mouseInput)
     {
-        //float mouseX = Input.GetAxis("Mouse X") * mouseSensityvity * Time.deltaTime * 2f;
-        //float mouseY = Input.GetAxis("Mouse Y") * mouseSensityvity * Time.deltaTime;
-
         float mouseX = mouseInput.x * mouseSensityvity * Time.deltaTime * 2f;
         float mouseY = mouseInput.y * mouseSensityvity * Time.deltaTime;
 
-        yaw += mouseX;
-        pitch -= mouseY;
-        pitch = Mathf.Clamp(pitch, -45f, 45f);
-    }
-
-    void _ProcessCameraModeInput()
-    {
-        //if (Input.GetKeyDown(KeyCode.V))
-        //{
-        //    isFirstPerson = !isFirstPerson;
-        //    Debug.Log(isFirstPerson ? "first person mode" : "third person mode");
-        //}
-
-        if (Input.GetKeyDown(KeyCode.F))
-        {
-            isRotateAroundPlayer = !isRotateAroundPlayer;
-            Debug.Log(isRotateAroundPlayer ? "camera is rotating around the player" : "player rotates camera directly");
-        }
-    }
-
-    void _FirstPersonMovement()
-    {
-        horizontal = Input.GetAxis("Horizontal");
-        vertical = Input.GetAxis("Vertical");
-
-        //move character controller to camera's direction
-        Vector3 moveDirection = cameraTransform.right * horizontal + cameraTransform.forward * vertical;
-        moveDirection.y = 0f;
-        characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
-
-        //change camera position to player's head postion
-        cameraTransform.position = playerHeadTransform.position;
-
-        //change camera rotation to pitch, yaw values
-        cameraTransform.rotation = Quaternion.Euler(pitch, yaw, 0);
-
-        //change player rotation to camera's yaw direction
-        transform.rotation = Quaternion.Euler(0f, cameraTransform.eulerAngles.y, 0f);
+        _yaw += mouseX;
+        _pitch -= mouseY;
+        _pitch = Mathf.Clamp(_pitch, -45f, 45f);
     }
 
     void _ProcessMovement(object o, Vector2 inputAxis)
     {
-        //horizontal = Input.GetAxis("Horizontal");
-        //vertical = Input.GetAxis("Vertical");
-
-        horizontal = inputAxis.x;
-        vertical = inputAxis.y;
+        _horizontal = inputAxis.x;
+        _vertical = inputAxis.y;
 
         if (Input.GetKey(KeyCode.LeftShift))
         {
-            isRunning = true;
-            moveSpeed = runSpeed;
+            _isRunning = true;
+            _currentSpeed = runSpeed;
         }
         else
         {
-            isRunning = false;
-            moveSpeed = walkSpeed;
+            _isRunning = false;
+            _currentSpeed = walkSpeed;
         }
 
-        if (characterController.isGrounded && verticalVelocity < 0f)
-            verticalVelocity = 0f;
+        if (_characterController.isGrounded && _verticalVelocity < 0f)
+            _verticalVelocity = 0f;
 
-        verticalVelocity += gravity * Time.deltaTime;
+        _verticalVelocity += _gravity * Time.deltaTime;
 
-        Vector3 moveDirection = transform.right * horizontal + transform.forward * vertical + transform.up * verticalVelocity;
-        characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
+        Vector3 moveDirection = transform.right * _horizontal + transform.forward * _vertical + transform.up * _verticalVelocity;
+        _characterController.Move(moveDirection * _currentSpeed * Time.deltaTime);
 
         _UpdateCameraPosition();
-    }
-
-    float _CalculateJumpMagnitude()
-    {
-        return jumpHeight * Mathf.Sqrt(2 * gravity);
     }
 
     void _ZoomIn(object sender, EventArgs e)
@@ -362,28 +323,16 @@ public class PlayerManager : MonoBehaviour
         if (!hasRifle)
             return;
 
-        if (zoomCoroutine != null)
+        if (_zoomCoroutine != null)
         {
-            StopCoroutine(zoomCoroutine);
+            StopCoroutine(_zoomCoroutine);
         }
 
-        //if it's first person mode start zoomFOV coroutine
-        if (isFirstPerson)
-        {
-            SetTargetFov(zoomFov);
-            zoomCoroutine = StartCoroutine(ZoomFieldOfViewCoroutine(camTargetFov));
-        }
-        //if not zoomDistance coroutine
-        else
-        {
-            isAiming = true;
-            UIManager.Instance.SetActiveUI(EUIObject.CROSSHAIR, true);
-            //crossHairUI.SetActive(true);
-            animator.SetLayerWeight(1, 1);
-            SetTargetDistance(zoomDistance);
-            zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
-            OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
-        }
+        _isAiming = true;
+        OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
+        _animator.SetLayerWeight(1, 1);
+        SetTargetDistance(zoomDistance);
+        _zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(_targetCamDistance));
     }
 
     void _ZoomOut(object sender, EventArgs e)
@@ -391,131 +340,40 @@ public class PlayerManager : MonoBehaviour
         if (!hasRifle)
             return;
 
-        if (zoomCoroutine != null)
+        if (_zoomCoroutine != null)
         {
-            StopCoroutine(zoomCoroutine);
+            StopCoroutine(_zoomCoroutine);
         }
 
-        if (isFirstPerson)
-        {
-            SetTargetFov(defaultFov);
-            zoomCoroutine = StartCoroutine(ZoomFieldOfViewCoroutine(camTargetFov));
-        }
-        else
-        {
-            isAiming = false;
-            UIManager.Instance.SetActiveUI(EUIObject.CROSSHAIR, false);
-            //crossHairUI.SetActive(false);
-            //multiAimConstraint.data.offset = Vector3.zero;
-            animator.SetLayerWeight(1, 0);
-            SetTargetDistance(thirdPersonDistance);
-            zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
-            OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
-        }
-    }
-
-    void _ProcessZoomInOut()
-    {
-        if (Input.GetMouseButtonDown(1))
-        {
-            //if zoomcoroutine is playing, stop it
-            if (zoomCoroutine != null)
-            {
-                StopCoroutine(zoomCoroutine);
-            }
-
-            //if it's first person mode start zoomFOV coroutine
-            if (isFirstPerson)
-            {
-                SetTargetFov(zoomFov);
-                zoomCoroutine = StartCoroutine(ZoomFieldOfViewCoroutine(camTargetFov));
-            }
-            //if not zoomDistance coroutine
-            else
-            {
-                isAiming = true;
-                UIManager.Instance.SetActiveUI(EUIObject.CROSSHAIR, true);
-                //crossHairUI.SetActive(true);
-                animator.SetLayerWeight(1, 1);
-                SetTargetDistance(zoomDistance);
-                zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
-            }
-        }
-
-        if (Input.GetMouseButtonUp(1))
-        {
-            if (zoomCoroutine != null)
-            {
-                StopCoroutine(zoomCoroutine);
-            }
-
-            if (isFirstPerson)
-            {
-                SetTargetFov(defaultFov);
-                zoomCoroutine = StartCoroutine(ZoomFieldOfViewCoroutine(camTargetFov));
-            }
-            else
-            {
-                isAiming = false;
-                UIManager.Instance.SetActiveUI(EUIObject.CROSSHAIR, false);
-                //crossHairUI.SetActive(false);
-                //multiAimConstraint.data.offset = Vector3.zero;
-                animator.SetLayerWeight(1, 0);
-                SetTargetDistance(thirdPersonDistance);
-                zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
-            }
-        }
+        _isAiming = false;
+        OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
+        //multiAimConstraint.data.offset = Vector3.zero;
+        _animator.SetLayerWeight(1, 0);
+        SetTargetDistance(thirdPersonDistance);
+        _zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(_targetCamDistance));
     }
 
     IEnumerator ZoomCameraCoroutine(float targetDistance)
     {
-        while(Mathf.Abs(camCurrentDistance - camTargetDistance) > 0.01f)
+        while(Mathf.Abs(_currentCamDistance - _targetCamDistance) > 0.01f)
         {
-            camCurrentDistance = Mathf.Lerp(camCurrentDistance, targetDistance, Time.deltaTime * zoomSpeed);
+            _currentCamDistance = Mathf.Lerp(_currentCamDistance, targetDistance, Time.deltaTime * zoomSpeed);
             yield return null;
         }
 
-        camCurrentDistance = targetDistance;
-    }
-
-    IEnumerator ZoomFieldOfViewCoroutine(float targetFov)
-    {
-        while (Mathf.Abs(mainCamera.fieldOfView - targetFov) > 0.01f)
-        {
-            mainCamera.fieldOfView = Mathf.Lerp(mainCamera.fieldOfView, targetFov, Time.deltaTime * zoomSpeed);
-            yield return null;
-        }
-
-        mainCamera.fieldOfView = targetFov;
+        _currentCamDistance = targetDistance;
     }
 
     void _Fire(object sender, EventArgs e)
     {
-        if (!isAiming)
+        if (!_isAiming)
             return;
 
-        if (canFire && bulletCount > 0 && Input.GetMouseButtonDown(0))
+        if (_canFire && bulletCount > 0)
         {
-            animator.SetTrigger("FireTrigger");
+            _animator.SetTrigger("FireTrigger");
 
-            Ray ray = new Ray(mainCamera.transform.position, mainCamera.transform.forward);
-            
-            //single hit
-            //RaycastHit hit;
-            //if (Physics.Raycast(ray, out hit, weaponMaxDistance, targetLayerMask))
-            //{
-            //    Debug.Log(hit.collider.gameObject.name);
-            //    Debug.DrawLine(ray.origin, hit.point, Color.red);
-
-            //    if (hit.transform.TryGetComponent<ZombieManager>(out ZombieManager zombie))
-            //    {
-            //        zombie.gameObject.SetActive(false);
-            //    }
-            //}
-            //else
-            //{
-            //    Debug.DrawLine(ray.origin, ray.origin + ray.direction * weaponMaxDistance, Color.green);
-            //}
+            Ray ray = new Ray(_mainCamera.transform.position, _mainCamera.transform.forward);
 
             //multi hit
             RaycastHit[] hits = Physics.RaycastAll(ray, weaponMaxDistance, targetLayerMask);
@@ -571,9 +429,9 @@ public class PlayerManager : MonoBehaviour
 
     IEnumerator ShootDelayCoroutine()
     {
-        canFire = false;
+        _canFire = false;
         yield return new WaitForSeconds(rifleShootDelay);
-        canFire = true;
+        _canFire = true;
         shootDelayCoroutine = null;
     }
 
@@ -582,78 +440,75 @@ public class PlayerManager : MonoBehaviour
         if (hasRifle)
         {
             //audioSource.PlayOneShot(audioClipEquipWeapon);
-            animator.SetTrigger("IsWeaponChange");
+            _animator.SetTrigger("IsWeaponChange");
             rifleObject.SetActive(true);
         }
     }
 
     void _PickUp(object sender, EventArgs e)
     {
-        if (pickUpCoroutine != null)
+        if (_pickUpCoroutine != null)
         {
-            StopCoroutine(pickUpCoroutine);
+            StopCoroutine(_pickUpCoroutine);
         }
 
-        pickUpCoroutine = StartCoroutine(PickUpCoroutine());
+        _pickUpCoroutine = StartCoroutine(PickUpCoroutine());
     }
 
     IEnumerator PickUpCoroutine()
     {
-        animator.SetLayerWeight(1, 0.8f);
-        animator.SetTrigger("IsPickUp");
-        float animationLength = animator.GetCurrentAnimatorStateInfo(1).length;
-        yield return new WaitForSeconds(animationLength);
-        animator.SetLayerWeight(1, 0);
-    }
-
-    void _UpdateAimTarget()
-    {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        aimTarget.position = ray.GetPoint(10f);
+        _animator.SetLayerWeight(1, 0.8f);
+        _animator.SetTrigger("IsPickUp");
+        float animationLength = _animator.GetCurrentAnimatorStateInfo(1).length;
+        float untilPickupLength = 1.0f;
+        yield return new WaitForSeconds(untilPickupLength);
+        //trigger on/off recorded item pick up object
+        yield return new WaitForSeconds(animationLength - untilPickupLength);
+        _animator.SetLayerWeight(1, 0);
     }
 
     void _Jump(object sender, EventArgs e)
     {
-        if (characterController.isGrounded)
+        if (_characterController.isGrounded)
         {
-            verticalVelocity += Mathf.Sqrt(jumpHeight * -3f * gravity);
-            animator.SetTrigger("JumpTrigger");
+            _verticalVelocity += Mathf.Sqrt(jumpHeight * -3f * _gravity);
+            _animator.SetTrigger("JumpTrigger");
         }
     }
 
     void _SetAnimationParams()
     {
-        animator.SetFloat("Horizontal", horizontal);
-        animator.SetFloat("Vertical", vertical);
-        animator.SetBool("IsRunning", isRunning);
-        animator.SetBool("IsAiming", isAiming);
+        _animator.SetFloat("Horizontal", _horizontal);
+        _animator.SetFloat("Vertical", _vertical);
+        _animator.SetBool("IsRunning", _isRunning);
+        _animator.SetBool("IsAiming", _isAiming);
     }
 
-    void _DrawDebugBox(Vector3 origin, Vector3 direction)
-    {
-        Vector3 endPoint = origin + direction * boxCastDistance;
+    //void _DrawDebugBox(Vector3 origin, Vector3 direction)
+    //{
+    //    Vector3 endPoint = origin + direction * boxCastDistance;
 
-        Vector3[] corners = new Vector3[8];
-        corners[0] = origin + new Vector3(-boxSize.x, -boxSize.y, -boxSize.z) / 2;
-        corners[1] = origin + new Vector3(boxSize.x, -boxSize.y, -boxSize.z) / 2;
-        corners[2] = origin + new Vector3(-boxSize.x, boxSize.y, -boxSize.z) / 2;
-        corners[3] = origin + new Vector3(boxSize.x, boxSize.y, -boxSize.z) / 2;
-        corners[4] = origin + new Vector3(-boxSize.x, -boxSize.y, boxSize.z) / 2;
-        corners[5] = origin + new Vector3(boxSize.x, -boxSize.y, boxSize.z) / 2;
-        corners[6] = origin + new Vector3(-boxSize.x, boxSize.y, boxSize.z) / 2;
-        corners[7] = origin + new Vector3(boxSize.x, boxSize.y, boxSize.z) / 2;
+    //    Vector3[] corners = new Vector3[8];
+    //    corners[0] = origin + new Vector3(-boxSize.x, -boxSize.y, -boxSize.z) / 2;
+    //    corners[1] = origin + new Vector3(boxSize.x, -boxSize.y, -boxSize.z) / 2;
+    //    corners[2] = origin + new Vector3(-boxSize.x, boxSize.y, -boxSize.z) / 2;
+    //    corners[3] = origin + new Vector3(boxSize.x, boxSize.y, -boxSize.z) / 2;
+    //    corners[4] = origin + new Vector3(-boxSize.x, -boxSize.y, boxSize.z) / 2;
+    //    corners[5] = origin + new Vector3(boxSize.x, -boxSize.y, boxSize.z) / 2;
+    //    corners[6] = origin + new Vector3(-boxSize.x, boxSize.y, boxSize.z) / 2;
+    //    corners[7] = origin + new Vector3(boxSize.x, boxSize.y, boxSize.z) / 2;
         
-        Debug.DrawLine(corners[0], corners[1], Color.green, 3f);
-        Debug.DrawLine(corners[1], corners[3], Color.green, 3f);
-        Debug.DrawLine(corners[3], corners[2], Color.green, 3f);
-        Debug.DrawLine(corners[2], corners[0], Color.green, 3f);
-        Debug.DrawLine(corners[4], corners[5], Color.green, 3f);
-        Debug.DrawLine(corners[5], corners[7], Color.green, 3f);
-        Debug.DrawLine(corners[7], corners[6], Color.green, 3f);
-        Debug.DrawLine(corners[6], corners[4], Color.green, 3f);
-        Debug.DrawLine(corners[0], corners[4], Color.green, 3f);
-        Debug.DrawLine(corners[1], corners[5], Color.green, 3f);
-        Debug.DrawLine(corners[2], corners[6], Color.green, 3f);
-        Debug.DrawLine(corners[3], corners[7], Color.green, 3f);
-    }
+    //    Debug.DrawLine(corners[0], corners[1], Color.green, 3f);
+    //    Debug.DrawLine(corners[1], corners[3], Color.green, 3f);
+    //    Debug.DrawLine(corners[3], corners[2], Color.green, 3f);
+    //    Debug.DrawLine(corners[2], corners[0], Color.green, 3f);
+    //    Debug.DrawLine(corners[4], corners[5], Color.green, 3f);
+    //    Debug.DrawLine(corners[5], corners[7], Color.green, 3f);
+    //    Debug.DrawLine(corners[7], corners[6], Color.green, 3f);
+    //    Debug.DrawLine(corners[6], corners[4], Color.green, 3f);
+    //    Debug.DrawLine(corners[0], corners[4], Color.green, 3f);
+    //    Debug.DrawLine(corners[1], corners[5], Color.green, 3f);
+    //    Debug.DrawLine(corners[2], corners[6], Color.green, 3f);
+    //    Debug.DrawLine(corners[3], corners[7], Color.green, 3f);
+    //}
 }

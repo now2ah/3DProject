@@ -840,6 +840,59 @@ Transform:
   m_Children: []
   m_Father: {fileID: 832951752459348312}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2517437224197830905
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 361529972313325100}
+  - component: {fileID: 3944929352020136688}
+  m_Layer: 0
+  m_Name: ItemPickUpObj
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &361529972313325100
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2517437224197830905}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1584206495988946434}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &3944929352020136688
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2517437224197830905}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 2, z: 1}
+  m_Center: {x: 0, y: 1, z: 0}
 --- !u!1 &2669822002447932599
 GameObject:
   m_ObjectHideFlags: 0
@@ -3286,8 +3339,9 @@ Transform:
   - {fileID: 2842213817252437425}
   - {fileID: 3659542045865939213}
   - {fileID: 6598100511464381396}
-  - {fileID: 5252195423030710235}
+  - {fileID: 361529972313325100}
   - {fileID: 9056577838723099210}
+  - {fileID: 5252195423030710235}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5223976863296285868
@@ -3302,38 +3356,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69f04c0981a579d45b8f97cfc5024f08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 2
   mouseSensityvity: 100
-  cameraTransform: {fileID: 0}
-  characterController: {fileID: 3276109773474417269}
-  playerHeadTransform: {fileID: 6380506719729810476}
   thirdPersonDistance: 2
   thirdPersonOffset: {x: 0, y: 1.5, z: 0}
-  playerLookTransform: {fileID: 6598100511464381396}
   zoomDistance: 1
   zoomSpeed: 5
   defaultFov: 60
   zoomFov: 30
-  gravity: -9.81
   jumpHeight: 1
   walkSpeed: 2
   runSpeed: 5
+  itemLayerMask:
+    serializedVersion: 2
+    m_Bits: 128
   rifleObject: {fileID: 3491891918269723286}
-  aimTarget: {fileID: 9056577838723099210}
   targetLayerMask:
     serializedVersion: 2
     m_Bits: 64
   muzzleFlashParticle: {fileID: 4001530652363448168}
-  multiAimConstraint: {fileID: 7435082960267134100}
-  boxSize: {x: 1, y: 1, z: 1}
-  boxCastDistance: 5
-  itemLayerMask:
-    serializedVersion: 2
-    m_Bits: 128
+  hitParticle: {fileID: 0}
   pickUpTransform: {fileID: 8509353206439343001}
-  crossHairUI: {fileID: 0}
-  rifleUI: {fileID: 0}
-  bulletUI: {fileID: 0}
   audioClipFire: {fileID: 8300000, guid: b663de5596f3df846b390034bad48468, type: 3}
   audioClipEquipWeapon: {fileID: 8300000, guid: 2fbca450abe89954aa6f67becef10709, type: 3}
   audioClipBeHit: {fileID: 8300000, guid: 35eb7394b28dab74b826381b206a675b, type: 3}

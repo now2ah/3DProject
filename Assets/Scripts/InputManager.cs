@@ -4,6 +4,8 @@ using UnityEngine.Events;
 
 public class InputManager : Singleton<InputManager>
 {
+    public float mouseSensitivity = 100.0f;
+
     public KeyCode equip1Input = KeyCode.Alpha1;
     public KeyCode pickUpInput = KeyCode.E;
     public KeyCode jumpInput = KeyCode.Space;
