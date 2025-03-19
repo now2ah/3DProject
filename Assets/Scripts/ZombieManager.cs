@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class ZombieManager : MonoBehaviour
 {
@@ -18,6 +20,7 @@ public class ZombieManager : MonoBehaviour
         ATTACK
     }
 
+    private NavMeshAgent navMeshAgent;
     private Animator animator;
 
     public float moveSpeed = 2f;
@@ -43,6 +46,83 @@ public class ZombieManager : MonoBehaviour
     private AudioSource audioSource;
     public AudioClip audioClipZombieIdle;
     public AudioClip audioClipZombieAttack;
+
+
+    private void Awake()
+    {
+        animator = GetComponent<Animator>();
+        navMeshAgent = GetComponent<NavMeshAgent>();
+    }
+
+    private void Start()
+    {
+        GameManager.Instance.OnPlayerSpawned += _OnPlayerSpawned;
+        ChangeState(EZombieState.IDLE);
+    }
+
+    private void Update()
+    {
+        //switch (currentState)
+        //{
+        //    case EZombieState.IDLE:
+        //        currentState = EZombieState.ROAM;
+        //        break;
+
+        //    case EZombieState.ROAM:
+        //        animator.SetBool("IsRun", true);
+        //        _Patrol();
+
+        //        if (_IsDetectedPlayer())
+        //        {
+        //            currentState = EZombieState.CHASE;
+        //        }
+        //        break;
+
+        //    case EZombieState.CHASE:
+        //        if (_IsDetectedPlayer())
+        //        {
+        //            _Chase(target);
+        //        }
+        //        else
+        //        {
+        //            currentState = EZombieState.IDLE;
+        //        }
+
+        //        if (_IsInAttackRange())
+        //        {
+        //            currentState = EZombieState.ATTACK;
+        //        }
+        //        break;
+
+        //    case EZombieState.ATTACK:
+        //        if (nextAttackTime > attackDelay)
+        //        {
+        //            _Attack(target);
+        //            nextAttackTime = 0f;
+        //        }
+        //        nextAttackTime += Time.deltaTime;
+        //        break;
+
+        //    case EZombieState.DIE:
+        //        _Die();
+        //        break;
+        //}
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject.CompareTag("Player"))
+        {
+            if (other.TryGetComponent<PlayerManager>(out PlayerManager player))
+            {
+                player.BeHit();
+            }
+        }
+    }
 
     public void PlayAudio(EZombieSFX sfx)
     {
@@ -149,98 +229,35 @@ public class ZombieManager : MonoBehaviour
         ChangeState(EZombieState.IDLE);
     }
 
-    private void Awake()
+    void _OnPlayerSpawned(object sender, EventArgs e)
     {
-        animator = GetComponent<Animator>();
-    }
-
-    private void Start()
-    {
-        ChangeState(EZombieState.IDLE);
-    }
-
-    private void Update()
-    {
-        //switch (currentState)
-        //{
-        //    case EZombieState.IDLE:
-        //        currentState = EZombieState.ROAM;
-        //        break;
-
-        //    case EZombieState.ROAM:
-        //        animator.SetBool("IsRun", true);
-        //        _Patrol();
-
-        //        if (_IsDetectedPlayer())
-        //        {
-        //            currentState = EZombieState.CHASE;
-        //        }
-        //        break;
-
-        //    case EZombieState.CHASE:
-        //        if (_IsDetectedPlayer())
-        //        {
-        //            _Chase(target);
-        //        }
-        //        else
-        //        {
-        //            currentState = EZombieState.IDLE;
-        //        }
-
-        //        if (_IsInAttackRange())
-        //        {
-        //            currentState = EZombieState.ATTACK;
-        //        }
-        //        break;
-
-        //    case EZombieState.ATTACK:
-        //        if (nextAttackTime > attackDelay)
-        //        {
-        //            _Attack(target);
-        //            nextAttackTime = 0f;
-        //        }
-        //        nextAttackTime += Time.deltaTime;
-        //        break;
-
-        //    case EZombieState.DIE:
-        //        _Die();
-        //        break;
-        //}
-    }
-
-    private void OnCollisionEnter(Collision collision)
-    {
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.gameObject.CompareTag("Player"))
-        {
-            if (other.TryGetComponent<PlayerManager>(out PlayerManager player))
-            {
-                player.BeHit();
-            }
-        }
+        target = GameManager.Instance.Player.transform;
     }
 
     bool _IsDetectedPlayer()
     {
-        if (target == null) { target = GameObject.FindGameObjectWithTag("Player").transform; }
-
-        distanceToTarget = Vector3.Distance(transform.position, target.position);
-        if (distanceToTarget < detectRange)
+        if (target != null)
         {
-            return true;
+            distanceToTarget = Vector3.Distance(transform.position, target.position);
+            if (distanceToTarget < detectRange)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            return false;
-        }
+        return false;
     }
 
-    void _Move(Vector3 direction)
+    void _Move(Vector3 position)
     {
-        transform.position += direction * moveSpeed * Time.deltaTime;
+        //transform.position += direction * moveSpeed * Time.deltaTime;
+        navMeshAgent.speed = 2f;
+        navMeshAgent.stoppingDistance = 1f;
+        navMeshAgent.destination = position;
+        //navMeshAgent.Move(direction);
     }
 
     void _Attack(Transform target)
@@ -267,8 +284,8 @@ public class ZombieManager : MonoBehaviour
     {
         Transform targetPoint = patrolPoints[patrolPointIndex];
         Vector3 direction = (targetPoint.position - transform.position).normalized;
-        transform.LookAt(patrolPoints[patrolPointIndex]);
-        _Move(direction);
+        //transform.LookAt(patrolPoints[patrolPointIndex]);
+        _Move(targetPoint.position);
 
         if (Vector3.Distance(transform.position, targetPoint.position) < 0.3f)
         {
@@ -280,9 +297,9 @@ public class ZombieManager : MonoBehaviour
     {
         //isPatrol = false;
         Vector3 direction = (target.position - transform.position).normalized;
-        transform.LookAt(target.position);
+        //transform.LookAt(target.position);
         //if (!isAttack)
-            _Move(direction);
+            _Move(target.position);
 
         //if (!_IsDetectedPlayer())
         //    isPatrol = true;

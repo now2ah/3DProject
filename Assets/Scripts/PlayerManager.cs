@@ -13,11 +13,33 @@ public enum eSFX
     PICKUP
 }
 
+public class PlayerStatsForUI
+{
+    public bool hasRifle;
+    public bool isAiming;
+    public int currentBullet;
+    public int maxBullet;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="hasRifle"></param>
+    /// <param name="isAiming"></param>
+    /// <param name="currentBullet"></param>
+    /// <param name="maxBullet"></param>
+    public PlayerStatsForUI(bool hasRifle, bool isAiming, int currentBullet, int maxBullet)
+    {
+        this.hasRifle = hasRifle;
+        this.isAiming = isAiming;
+        this.currentBullet = currentBullet;
+        this.maxBullet = maxBullet;
+    }
+}
+
 public class PlayerManager : MonoBehaviour
 {
     public float moveSpeed = 2.0f;
     public float mouseSensityvity = 100.0f;
-    public Transform cameraTransform;
     public CharacterController characterController;
     public Transform playerHeadTransform;
     public float thirdPersonDistance = 3.0f;
@@ -28,11 +50,11 @@ public class PlayerManager : MonoBehaviour
     public float zoomSpeed = 5.0f;
     public float defaultFov = 60.0f;
     public float zoomFov = 30.0f;
+    private Transform cameraTransform;
 
     private float camCurrentDistance;
     private float camTargetDistance;
     private float camTargetFov;
-    private bool isZoomed = false;
     private Coroutine zoomCoroutine;
     private Camera mainCamera;
 
@@ -63,11 +85,14 @@ public class PlayerManager : MonoBehaviour
     private bool canFire = true;
     private float weaponMaxDistance = 100f;
     private float rifleShootDelay = 0.5f;
+    private int currentBulletcount = 5;
+    private int maxBulletCount = 5;
     private Coroutine shootDelayCoroutine;
     public GameObject rifleObject;
     public Transform aimTarget;    
     public LayerMask targetLayerMask;
     public ParticleSystem muzzleFlashParticle;
+    public ParticleSystem hitParticle;
 
     public MultiAimConstraint multiAimConstraint;
 
@@ -78,9 +103,9 @@ public class PlayerManager : MonoBehaviour
     private bool hasRifle = false;
     private int bulletCount = 5;
 
-    public GameObject crossHairUI;
-    public GameObject rifleUI;
-    public GameObject bulletUI;
+    //public GameObject crossHairUI;
+    //public GameObject rifleUI;
+    //public GameObject bulletUI;
 
     public AudioClip audioClipFire;
     public AudioClip audioClipEquipWeapon;
@@ -88,11 +113,16 @@ public class PlayerManager : MonoBehaviour
     public AudioClip audioClipGetItem;
     private AudioSource audioSource;
 
+    public event EventHandler<PlayerStatsForUI> OnPlayerStatsChange;
+
     private void OnEnable()
     {
         InputManager.Instance.OnLookInput += _ProcessMouseInput;
         InputManager.Instance.OnMoveInput += _ProcessMovement;
+        InputManager.Instance.OnEquip1Input += _ProcessChangeWeapon;
         InputManager.Instance.OnFireInput += _Fire;
+        InputManager.Instance.OnAimStartInput += _ZoomIn;
+        InputManager.Instance.OnAimEndInput += _ZoomOut;
         InputManager.Instance.OnPickUpInput += _PickUp;
         InputManager.Instance.OnJumpInput += _Jump;
     }
@@ -103,15 +133,13 @@ public class PlayerManager : MonoBehaviour
         camCurrentDistance = thirdPersonDistance;
         camTargetDistance = thirdPersonDistance;
         camTargetFov = defaultFov;
+        cameraTransform = Camera.main.transform;
         mainCamera = cameraTransform.GetComponent<Camera>();
         mainCamera.fieldOfView = defaultFov;
         rifleObject.SetActive(false);
 
         animator = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
-
-
-        
     }
 
     void Update()
@@ -121,15 +149,14 @@ public class PlayerManager : MonoBehaviour
         //_ProcessMovement();
         //_ProcessJump();
 
-        if (hasRifle)
-            _ProcessZoomInOut();
+        //if (hasRifle)
+        //    _ProcessZoomInOut();
 
         //if (isAiming)
         //{
         //    _Fire();
         //}
-
-        _ProcessChangeWeapons();
+        //_ProcessChangeWeapons();
         _SetAnimationParams();
     }
 
@@ -187,12 +214,18 @@ public class PlayerManager : MonoBehaviour
             if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Item"))
             {
                 hasRifle = true;
-                UIManager.Instance.SetActiveUI(EUIObject.RIFLE, true);
+                OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
+                //UIManager.Instance.SetActiveUI(EUIObject.RIFLE, true);
                 //rifleUI.SetActive(true);
             }
 
             hit.collider.gameObject.SetActive(false);
         }
+    }
+
+    PlayerStatsForUI _GetPlayerStats()
+    {
+        return new PlayerStatsForUI(hasRifle, isAiming, currentBulletcount, maxBulletCount);
     }
 
     IEnumerator BeHitCoroutine()
@@ -324,6 +357,63 @@ public class PlayerManager : MonoBehaviour
         return jumpHeight * Mathf.Sqrt(2 * gravity);
     }
 
+    void _ZoomIn(object sender, EventArgs e)
+    {
+        if (!hasRifle)
+            return;
+
+        if (zoomCoroutine != null)
+        {
+            StopCoroutine(zoomCoroutine);
+        }
+
+        //if it's first person mode start zoomFOV coroutine
+        if (isFirstPerson)
+        {
+            SetTargetFov(zoomFov);
+            zoomCoroutine = StartCoroutine(ZoomFieldOfViewCoroutine(camTargetFov));
+        }
+        //if not zoomDistance coroutine
+        else
+        {
+            isAiming = true;
+            UIManager.Instance.SetActiveUI(EUIObject.CROSSHAIR, true);
+            //crossHairUI.SetActive(true);
+            animator.SetLayerWeight(1, 1);
+            SetTargetDistance(zoomDistance);
+            zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
+            OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
+        }
+    }
+
+    void _ZoomOut(object sender, EventArgs e)
+    {
+        if (!hasRifle)
+            return;
+
+        if (zoomCoroutine != null)
+        {
+            StopCoroutine(zoomCoroutine);
+        }
+
+        if (isFirstPerson)
+        {
+            SetTargetFov(defaultFov);
+            zoomCoroutine = StartCoroutine(ZoomFieldOfViewCoroutine(camTargetFov));
+        }
+        else
+        {
+            isAiming = false;
+            UIManager.Instance.SetActiveUI(EUIObject.CROSSHAIR, false);
+            //crossHairUI.SetActive(false);
+            //multiAimConstraint.data.offset = Vector3.zero;
+            animator.SetLayerWeight(1, 0);
+            SetTargetDistance(thirdPersonDistance);
+            zoomCoroutine = StartCoroutine(ZoomCameraCoroutine(camTargetDistance));
+            OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
+        }
+    }
+
     void _ProcessZoomInOut()
     {
         if (Input.GetMouseButtonDown(1))
@@ -441,7 +531,12 @@ public class PlayerManager : MonoBehaviour
                     if (hitCount <= 0)
                         break;
 
-                    hits[i].transform.gameObject.SetActive(false);
+                    ParticleSystem hitParticleObj = Instantiate(hitParticle);
+                    hitParticleObj.transform.position = hits[i].point;
+                    hitParticleObj.Play();
+                    Destroy(hitParticleObj.gameObject, 1.0f);
+
+                    //hits[i].transform.gameObject.SetActive(false);
                     hitCount--;
                 }
             }
@@ -482,9 +577,9 @@ public class PlayerManager : MonoBehaviour
         shootDelayCoroutine = null;
     }
 
-    void _ProcessChangeWeapons()
+    void _ProcessChangeWeapon(object sender, EventArgs e)
     {
-        if (hasRifle && Input.GetKeyDown(KeyCode.Alpha1))
+        if (hasRifle)
         {
             //audioSource.PlayOneShot(audioClipEquipWeapon);
             animator.SetTrigger("IsWeaponChange");
