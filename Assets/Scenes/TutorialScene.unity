@@ -290,6 +290,7 @@ MonoBehaviour:
   patrolPoints: []
   transitionTime: 2
   detectRange: 3
+  attackTrigger: {fileID: 0}
   currentState: 0
   audioClipZombieIdle: {fileID: 0}
   audioClipZombieAttack: {fileID: 0}
@@ -481,6 +482,7 @@ MonoBehaviour:
   patrolPoints: []
   transitionTime: 2
   detectRange: 3
+  attackTrigger: {fileID: 0}
   currentState: 0
   audioClipZombieIdle: {fileID: 0}
   audioClipZombieAttack: {fileID: 0}
@@ -897,6 +899,7 @@ MonoBehaviour:
   patrolPoints: []
   transitionTime: 2
   detectRange: 3
+  attackTrigger: {fileID: 0}
   currentState: 0
   audioClipZombieIdle: {fileID: 0}
   audioClipZombieAttack: {fileID: 0}
@@ -1055,6 +1058,7 @@ MonoBehaviour:
   patrolPoints: []
   transitionTime: 2
   detectRange: 3
+  attackTrigger: {fileID: 0}
   currentState: 0
   audioClipZombieIdle: {fileID: 0}
   audioClipZombieAttack: {fileID: 0}
@@ -1353,6 +1357,7 @@ MonoBehaviour:
   patrolPoints: []
   transitionTime: 2
   detectRange: 3
+  attackTrigger: {fileID: 0}
   currentState: 0
   audioClipZombieIdle: {fileID: 0}
   audioClipZombieAttack: {fileID: 0}
@@ -3505,7 +3510,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3163095963247193366, guid: 965487a2d471cc64fa77a961bd3e2003, type: 3}
       propertyPath: m_Name
-      value: TestItem
+      value: RifleItem
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -4396,6 +4401,10 @@ PrefabInstance:
       propertyPath: cameraTransform
       value: 
       objectReference: {fileID: 330585546}
+    - target: {fileID: 6201698017922138827, guid: 3f096d97811dd274d9d0ff9128deee93, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7746467677103773916, guid: 3f096d97811dd274d9d0ff9128deee93, type: 3}
       propertyPath: m_Name
       value: Player
@@ -4406,7 +4415,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8606714071982555571, guid: 3f096d97811dd274d9d0ff9128deee93, type: 3}
       propertyPath: m_WarningMessage
-      value: 
+      value: "\nBinding warning: Some generic clip(s) animate transforms that are
+        already bound by a Humanoid avatar. These transforms can only be changed
+        by Humanoid clips.\n\tTransform 'pelvis'\n\tTransform 'spine_01'\n\tTransform
+        'pelvis'\n\tTransform 'spine_01'\n\tTransform 'pelvis'\n\tTransform 'spine_01'"
       objectReference: {fileID: 0}
     - target: {fileID: 8606714071982555571, guid: 3f096d97811dd274d9d0ff9128deee93, type: 3}
       propertyPath: m_ApplyRootMotion
@@ -5163,6 +5175,7 @@ MonoBehaviour:
   - {fileID: 862823607}
   transitionTime: 2
   detectRange: 3
+  attackTrigger: {fileID: 1636749097}
   currentState: 0
   audioClipZombieIdle: {fileID: 8300000, guid: 2e911b730e733a344bfdf093f62ebd4c, type: 3}
   audioClipZombieAttack: {fileID: 8300000, guid: 7e5e9c5268c90a3418872a045b97b6f3, type: 3}
