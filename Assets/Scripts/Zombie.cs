@@ -44,7 +44,7 @@ public class Zombie : Enemy
     {
         base.Awake();
         walkSpeed = 1f;
-        runSpeed = 3f;
+        runSpeed = 1.5f;
         angularSpeed = 360f;
         attackDamage = 3f;
         attackRange = 1f;
