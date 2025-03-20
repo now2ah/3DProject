@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 8016821111144035768}
   m_Layer: 7
   m_Name: RifleItem
-  m_TagString: Untagged
+  m_TagString: Item
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -95,7 +95,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8149e87ad9afb1b4995020a067b2a6e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damage: 0
+  damage: 3
 --- !u!1001 &945785007015699179
 PrefabInstance:
   m_ObjectHideFlags: 0

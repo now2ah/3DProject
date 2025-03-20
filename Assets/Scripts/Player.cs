@@ -34,7 +34,7 @@ public class Player : MonoBehaviour
     [Header("Camera")]
     public float thirdPersonDistance = 3.0f;
     public Vector3 thirdPersonOffset = new Vector3(0f, 1.0f, 0f);
-    public float zoomDistance = 1.0f;
+    public float zoomDistance = 0.5f;
     public float zoomSpeed = 5.0f;
     public float defaultFov = 60.0f;
     public float zoomFov = 30.0f;
@@ -238,7 +238,7 @@ public class Player : MonoBehaviour
 
     void _UpdateCameraPosition()
     {
-        //_currentCamDistance = thirdPersonDistance;
+        _currentCamDistance = thirdPersonDistance;
         transform.rotation = Quaternion.Euler(0f, _yaw, 0);
 
         Vector3 direction = new Vector3(0, 0, -_currentCamDistance);
