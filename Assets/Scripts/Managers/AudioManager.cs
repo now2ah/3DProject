@@ -77,7 +77,28 @@ public class AudioManager : Singleton<AudioManager>
 
         if (null == playAudioSource.clip) { Debug.Log("can't find sfx audio clip"); return; }
 
+        playAudioSource.spatialBlend = 0f;
         playAudioSource.PlayOneShot(playAudioSource.clip);
+    }
+
+    public void PlaySfxAt(ESfx sfx, Vector3 position)
+    {
+        AudioSource playAudioSource = null;
+        foreach (var audioSource in _sfxAudioSources)
+        {
+            if (!audioSource.isPlaying)
+                playAudioSource = audioSource;
+        }
+
+        if (null == playAudioSource)
+            return;
+
+        playAudioSource.clip = _audioDic[Enum.GetName(typeof(ESfx), sfx)];
+
+        if (null == playAudioSource.clip) { Debug.Log("can't find sfx audio clip"); return; }
+
+        playAudioSource.spatialBlend = 1f;
+        AudioSource.PlayClipAtPoint(playAudioSource.clip, position);
     }
 
     void _SetAudioDictionary()

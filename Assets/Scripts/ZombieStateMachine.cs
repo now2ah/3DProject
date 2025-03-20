@@ -140,6 +140,31 @@ public class ZombieAttackState : State
     }
 }
 
+public class ZombieDieState : State
+{
+    Zombie _zombie;
+
+    public ZombieDieState(Zombie zombie)
+    {
+        _zombie = zombie;
+    }
+
+    public override void EnterState()
+    {
+        _zombie.ChangeStateValue(Zombie.EZombieState.DIE, true);
+    }
+
+    public override void UpdateState()
+    {
+
+    }
+
+    public override void EndState()
+    {
+        _zombie.ChangeStateValue(Zombie.EZombieState.DIE, false);
+    }
+}
+
 public class ZombieStateMachine : StateMachine
 {
 

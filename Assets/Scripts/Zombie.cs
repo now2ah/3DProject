@@ -25,6 +25,7 @@ public class Zombie : Enemy
     private ZombieRoamState _roamState;
     private ZombieChaseState _chaseState;
     private ZombieAttackState _attackState;
+    private ZombieDieState _dieState;
 
     private bool _isIdle = false;
     private bool _isRoam = false;
@@ -37,6 +38,7 @@ public class Zombie : Enemy
 
     private Coroutine _roamCoroutine = null;
     private Coroutine _attackCoroutine = null;
+    private Coroutine _dieCoroutine = null;
 
     private new void Awake()
     {
@@ -44,6 +46,7 @@ public class Zombie : Enemy
         walkSpeed = 1f;
         runSpeed = 3f;
         angularSpeed = 360f;
+        attackDamage = 3f;
         attackRange = 1f;
         //attackDelay = 2f;
         detectRange = 3f;
@@ -58,23 +61,13 @@ public class Zombie : Enemy
         _roamState = new ZombieRoamState(this);
         _chaseState = new ZombieChaseState(this);
         _attackState = new ZombieAttackState(this);
+        _dieState = new ZombieDieState(this);
     }
 
     private void Start()
     {
         GameManager.Instance.OnPlayerSpawned += _OnPlayerSpawned;
         _stateMachine.StartState(_idleState);
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.gameObject.CompareTag("Player"))
-        {
-            if (other.TryGetComponent<Player>(out Player player))
-            {
-                player.BeHit();
-            }
-        }
     }
 
     public void ChangeState(EZombieState newState)
@@ -96,6 +89,10 @@ public class Zombie : Enemy
         else if (newState == EZombieState.ATTACK)
         {
             state = _attackState;
+        }
+        else if (newState == EZombieState.DIE)
+        {
+            state = _dieState;
         }
 
         _stateMachine.ChangeState(state);
@@ -119,14 +116,21 @@ public class Zombie : Enemy
         {
             _isAttack = isOn;
         }
+        else if (state == EZombieState.DIE)
+        {
+            _isDead = isOn;
+        }
 
         _SetAnimationParam();
     }
 
     public void StopMove()
     {
-        _navMeshAgent.ResetPath();
-        _navMeshAgent.velocity = Vector3.zero;
+        if (_navMeshAgent != null)
+        {
+            _navMeshAgent.ResetPath();
+            _navMeshAgent.velocity = Vector3.zero;
+        }
     }
 
     public bool IsDetectedPlayer()
@@ -154,14 +158,17 @@ public class Zombie : Enemy
 
     IEnumerator RoamCoroutine(UnityAction callBack)
     {
-        _navMeshAgent.speed = walkSpeed;
+        if (_navMeshAgent != null)
+            _navMeshAgent.speed = walkSpeed;
         float randomTime = UnityEngine.Random.Range(0, 5f);
         float randomX = UnityEngine.Random.Range(-5, 6);
         float randomZ = UnityEngine.Random.Range(-5, 6);
         Vector3 roamPosition = new Vector3(randomX, 0f, randomZ);
-        _navMeshAgent.destination = roamPosition;
+        if (_navMeshAgent != null)
+            _navMeshAgent.destination = roamPosition;
         yield return new WaitForSeconds(randomTime);
-        _navMeshAgent.ResetPath();
+        if (_navMeshAgent != null)
+            _navMeshAgent.ResetPath();
         callBack?.Invoke();
         _roamCoroutine = null;
     }
@@ -192,25 +199,18 @@ public class Zombie : Enemy
 
     IEnumerator AttackCoroutine(UnityAction callBack)
     {
-        _animator.SetTrigger("AttackTrigger");
+        if (_animator != null)
+            _animator.SetTrigger("AttackTrigger");
         float animationLength = _animator.GetNextAnimatorStateInfo(0).length;
         float deliverDamageTime = 0.3f;
         yield return new WaitForSeconds(deliverDamageTime);
-        //deliver damage
+        if (_target.TryGetComponent<Player>(out Player player))
+        {
+            player.ApplyDamage(attackDamage);
+        }
         yield return new WaitForSeconds(animationLength - deliverDamageTime);
         callBack?.Invoke();
         _attackCoroutine = null;
-    }
-
-    public void DeliverDamage(float damage)
-    {
-        if (_target != null)
-        {
-            if (_target.TryGetComponent<Player>(out Player player))
-            {
-                //apply damage
-            }
-        }
     }
 
     void _OnPlayerSpawned(object sender, EventArgs e)
@@ -231,6 +231,19 @@ public class Zombie : Enemy
 
     protected override void _Die()
     {
+        ChangeState(EZombieState.DIE);
+        _navMeshAgent.enabled = false;
+        if (null == _dieCoroutine)
+            _dieCoroutine = StartCoroutine(DieCoroutine());
+    }
 
+    IEnumerator DieCoroutine()
+    {
+        yield return new WaitForSeconds(0.1f);
+        _rigidBody.constraints = 0;
+        Vector3 direction = (_target.transform.position - transform.position).normalized * 5.0f;
+        _rigidBody.AddRelativeForce(direction, ForceMode.Impulse);
+        yield return new WaitForSeconds(3.0f);
+        Destroy(gameObject);
     }
 }

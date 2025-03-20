@@ -17,7 +17,8 @@ public abstract class Enemy : MonoBehaviour
     protected bool _isDead;
 
     public float CurrentHP { get { return _currentHP; } }
-    
+
+    protected Rigidbody _rigidBody;
     protected NavMeshAgent _navMeshAgent;
     protected Animator _animator;
     protected Transform _target;
@@ -27,6 +28,7 @@ public abstract class Enemy : MonoBehaviour
 
     protected void Awake()
     {
+        _rigidBody = GetComponent<Rigidbody>();
         _navMeshAgent = GetComponent<NavMeshAgent>();
         _animator = GetComponent<Animator>();
     }

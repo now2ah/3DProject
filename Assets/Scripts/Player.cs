@@ -19,12 +19,10 @@ public class PlayerStatsForUI
     /// <param name="isAiming"></param>
     /// <param name="currentBullet"></param>
     /// <param name="maxBullet"></param>
-    public PlayerStatsForUI(bool hasRifle, bool isAiming, int currentBullet, int maxBullet)
+    public PlayerStatsForUI(bool hasRifle, bool isAiming)
     {
         this.hasRifle = hasRifle;
         this.isAiming = isAiming;
-        this.currentBullet = currentBullet;
-        this.maxBullet = maxBullet;
     }
 }
 
@@ -40,6 +38,9 @@ public class Player : MonoBehaviour
     public float zoomSpeed = 5.0f;
     public float defaultFov = 60.0f;
     public float zoomFov = 30.0f;
+
+    [Header("Status")]
+    public float maxHP = 10f;
 
     [Header("Move")]
     public float jumpHeight = 2f;
@@ -71,6 +72,7 @@ public class Player : MonoBehaviour
     private CharacterController _characterController;
     private Animator _animator;
     private Transform _playerLookTransform;
+    private BoxCollider _itemPickUpTrigger;
 
     //move
     private bool _isRunning = false;
@@ -79,6 +81,9 @@ public class Player : MonoBehaviour
     private float _pitch = 0.0f;
     private float _yaw = 0.0f;
     private float _currentSpeed = 2.0f;
+
+    private bool _isDead = false;
+    private float _currentHP;
     
     //shooting
     private bool _isAiming = false;
@@ -89,9 +94,6 @@ public class Player : MonoBehaviour
     private float weaponMaxDistance = 100f;
     private float rifleShootDelay = 0.5f;
     private float rifleDamage = 3f;
-    private int currentBulletcount = 5;
-    private int maxBulletCount = 5;
-    private int bulletCount = 5;
 
     //coroutine
     private Coroutine _beHitCoroutine = null;
@@ -116,6 +118,7 @@ public class Player : MonoBehaviour
     {
         _characterController = GetComponent<CharacterController>();
         _animator = GetComponent<Animator>();
+        _itemPickUpTrigger = GetComponent<BoxCollider>();
 
         Transform[] transforms = GetComponentsInChildren<Transform>();
         foreach(var tr in transforms)
@@ -126,6 +129,8 @@ public class Player : MonoBehaviour
                 break;
             }
         }
+
+        _currentHP = maxHP;
     }
 
     void Start()
@@ -167,6 +172,7 @@ public class Player : MonoBehaviour
         {
             if (other.TryGetComponent<Rifle>(out Rifle rifle))
             {
+                rifle.gameObject.SetActive(false);
                 _hasRifle = true;
                 OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
             }
@@ -183,11 +189,13 @@ public class Player : MonoBehaviour
         _targetFov = fov;
     }
 
-    public void BeHit()
+    public void ApplyDamage(float damage)
     {
-        if (_beHitCoroutine == null)
+        if (!_isDead)
         {
-            _beHitCoroutine = StartCoroutine(BeHitCoroutine());
+            _currentHP -= damage;
+
+            if (_currentHP <= 0) { _Die(); }
         }
     }
 
@@ -214,7 +222,7 @@ public class Player : MonoBehaviour
 
     PlayerStatsForUI _GetPlayerStats()
     {
-        return new PlayerStatsForUI(_hasRifle, _isAiming, currentBulletcount, maxBulletCount);
+        return new PlayerStatsForUI(_hasRifle, _isAiming);
     }
 
     IEnumerator BeHitCoroutine()
@@ -327,7 +335,7 @@ public class Player : MonoBehaviour
         if (!_isAiming)
             return;
 
-        if (_canFire && bulletCount > 0)
+        if (_canFire)
         {
             _animator.SetTrigger("FireTrigger");
 
@@ -360,8 +368,6 @@ public class Player : MonoBehaviour
 
             muzzleFlashParticle.gameObject.SetActive(true);
             muzzleFlashParticle.Play(true);
-
-            bulletCount--;
 
             if (_shootDelayCoroutine == null)
             {
@@ -429,9 +435,10 @@ public class Player : MonoBehaviour
         float animationLength = _animator.GetCurrentAnimatorStateInfo(1).length;
         float untilPickupLength = 1.0f;
         yield return new WaitForSeconds(untilPickupLength);
-        //trigger on/off recorded item pick up object
+        _itemPickUpTrigger.enabled = true;
         yield return new WaitForSeconds(animationLength - untilPickupLength);
         _animator.SetLayerWeight(1, 0);
+        _itemPickUpTrigger.enabled = false;
     }
 
     void _Jump(object sender, EventArgs e)
@@ -443,12 +450,25 @@ public class Player : MonoBehaviour
         }
     }
 
+    void _BeHit()
+    {
+        if (_beHitCoroutine == null)
+        {
+            _beHitCoroutine = StartCoroutine(BeHitCoroutine());
+        }
+    }
+
     void _SetAnimationParams()
     {
         _animator.SetFloat("Horizontal", _horizontal);
         _animator.SetFloat("Vertical", _vertical);
         _animator.SetBool("IsRunning", _isRunning);
         _animator.SetBool("IsAiming", _isAiming);
+    }
+
+    void _Die()
+    {
+
     }
 
     //void _DrawDebugBox(Vector3 origin, Vector3 direction)
