@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
+using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Events;
 
-public class Zombie : MonoBehaviour
+public class Zombie : Enemy
 {
     public enum EZombieState
     {
@@ -13,97 +15,55 @@ public class Zombie : MonoBehaviour
         ATTACK,
         DIE
     }
-
-    public enum EZombieSFX
-    {
-        IDLE,
-        ATTACK
-    }
-
-    private NavMeshAgent _navMeshAgent;
-    private Animator _animator;
-
-    public float moveSpeed = 2f;
-    public float attackRange = 1f;
-    public float attackDelay = 2f;
-    public Transform[] patrolPoints;
-    public float detectRange = 3f;
+    
+    public float actInterval = 3f;
 
     public GameObject attackTrigger;
 
-    private int patrolPointIndex = 0;
-    private Transform target;
-    [SerializeField] private EZombieState currentState = EZombieState.IDLE;
-    private float zombieHP = 10f;
+    private ZombieStateMachine _stateMachine;
+    private ZombieIdleState _idleState;
+    private ZombieRoamState _roamState;
+    private ZombieChaseState _chaseState;
+    private ZombieAttackState _attackState;
+
+    private bool _isIdle = false;
+    private bool _isRoam = false;
+    private bool _isChase = false;
+    private bool _isAttack = false;
+
     private float distanceToTarget;
-    private bool isTransition = false;
-    private Coroutine attackCoroutine;
-    private Coroutine currentCoroutine;
 
-    private AudioSource audioSource;
-    public AudioClip audioClipZombieIdle;
-    public AudioClip audioClipZombieAttack;
+    public Transform Target { get { return _target; } }
 
+    private Coroutine _roamCoroutine = null;
+    private Coroutine _attackCoroutine = null;
 
-    private void Awake()
+    private new void Awake()
     {
-        _animator = GetComponent<Animator>();
-        _navMeshAgent = GetComponent<NavMeshAgent>();
+        base.Awake();
+        walkSpeed = 1f;
+        runSpeed = 3f;
+        angularSpeed = 360f;
+        attackRange = 1f;
+        //attackDelay = 2f;
+        detectRange = 3f;
+        maxHP = 9f;
+        _currentHP = maxHP;
+        _isDead = false;
+
+        _navMeshAgent.speed = walkSpeed;
+        _navMeshAgent.angularSpeed = angularSpeed;
+        _stateMachine = gameObject.AddComponent<ZombieStateMachine>();
+        _idleState = new ZombieIdleState(this);
+        _roamState = new ZombieRoamState(this);
+        _chaseState = new ZombieChaseState(this);
+        _attackState = new ZombieAttackState(this);
     }
 
     private void Start()
     {
         GameManager.Instance.OnPlayerSpawned += _OnPlayerSpawned;
-        ChangeState(EZombieState.IDLE);
-    }
-
-    private void Update()
-    {
-        //switch (currentState)
-        //{
-        //    case EZombieState.IDLE:
-        //        currentState = EZombieState.ROAM;
-        //        break;
-
-        //    case EZombieState.ROAM:
-        //        _animator.SetBool("IsRun", true);
-        //        _Patrol();
-
-        //        if (_IsDetectedPlayer())
-        //        {
-        //            currentState = EZombieState.CHASE;
-        //        }
-        //        break;
-
-        //    case EZombieState.CHASE:
-        //        if (_IsDetectedPlayer())
-        //        {
-        //            _Chase(target);
-        //        }
-        //        else
-        //        {
-        //            currentState = EZombieState.IDLE;
-        //        }
-
-        //        if (_IsInAttackRange())
-        //        {
-        //            currentState = EZombieState.ATTACK;
-        //        }
-        //        break;
-
-        //    case EZombieState.ATTACK:
-        //        if (nextAttackTime > attackDelay)
-        //        {
-        //            _Attack(target);
-        //            nextAttackTime = 0f;
-        //        }
-        //        nextAttackTime += Time.deltaTime;
-        //        break;
-
-        //    case EZombieState.DIE:
-        //        _Die();
-        //        break;
-        //}
+        _stateMachine.StartState(_idleState);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -117,121 +77,63 @@ public class Zombie : MonoBehaviour
         }
     }
 
-    public void PlayAudio(EZombieSFX sfx)
-    {
-        if (sfx == EZombieSFX.IDLE)
-        {
-            audioSource.clip = audioClipZombieIdle;
-            audioSource.Play();
-        }
-        else if (sfx == EZombieSFX.ATTACK)
-        {
-            audioSource.PlayOneShot(audioClipZombieAttack);
-        }
-    }
-
-    public void DeliverDamage(float damage)
-    {
-        if (target != null)
-        {
-            if (target.TryGetComponent<Player>(out Player player))
-            {
-                //apply damage
-            }
-        }
-    }
-
     public void ChangeState(EZombieState newState)
     {
-        if (currentCoroutine != null)
+        State state = null;
+
+        if (newState == EZombieState.IDLE)
         {
-            StopCoroutine(currentCoroutine);
+            state = _idleState;
+        }
+        else if(newState == EZombieState.ROAM)
+        {
+            state = _roamState;
+        }
+        else if (newState == EZombieState.CHASE)
+        {
+            state = _chaseState;
+        }
+        else if (newState == EZombieState.ATTACK)
+        {
+            state = _attackState;
         }
 
-        currentState = newState;
+        _stateMachine.ChangeState(state);
+    }
 
-        switch(currentState)
+    public void ChangeStateValue(EZombieState state, bool isOn)
+    {
+        if (state == EZombieState.IDLE)
         {
-            case EZombieState.IDLE:
-                currentCoroutine = StartCoroutine(IdleCoroutine());
-                break;
-            case EZombieState.ROAM:
-                currentCoroutine = StartCoroutine(RoamCoroutine());
-                break;
-            case EZombieState.CHASE:
-                currentCoroutine = StartCoroutine(ChaseCoroutine());
-                break;
-            case EZombieState.ATTACK:
-                currentCoroutine = StartCoroutine(AttackCoroutine());
-                break;
+            _isIdle = isOn;
         }
-    }
-
-    IEnumerator IdleCoroutine()
-    {
-        _animator.Play("Z_Idle");
-
-        while(currentState == EZombieState.IDLE)
+        else if (state == EZombieState.ROAM)
         {
-            if (_IsDetectedPlayer())
-                ChangeState(EZombieState.CHASE);
-            else if (_IsInAttackRange())
-                ChangeState(EZombieState.ATTACK);
-            else
-                ChangeState(EZombieState.ROAM);
-
-                yield return null;
+            _isRoam = isOn;
         }
-    }
-
-    IEnumerator RoamCoroutine()
-    {
-        while (currentState == EZombieState.ROAM)
+        else if (state == EZombieState.CHASE)
         {
-            _animator.Play("Z_Run");
-            _Patrol();
-
-            if (_IsDetectedPlayer())
-                ChangeState(EZombieState.CHASE);
-
-            yield return null;
+            _isChase = isOn;
         }
-    }
-
-    IEnumerator ChaseCoroutine()
-    {
-        _animator.Play("Z_Run");
-        while (currentState == EZombieState.CHASE)
+        else if (state == EZombieState.ATTACK)
         {
-            _Chase(target);
-
-            if (!_IsDetectedPlayer())
-                ChangeState(EZombieState.IDLE);
-
-            if (_IsInAttackRange())
-                ChangeState(EZombieState.ATTACK);
-
-            yield return null;
+            _isAttack = isOn;
         }
+
+        _SetAnimationParam();
     }
 
-    IEnumerator AttackCoroutine()
+    public void StopMove()
     {
-        _animator.Play("Z_Attack");
-        yield return new WaitForSeconds(attackDelay);
-        ChangeState(EZombieState.IDLE);
+        _navMeshAgent.ResetPath();
+        _navMeshAgent.velocity = Vector3.zero;
     }
 
-    void _OnPlayerSpawned(object sender, EventArgs e)
+    public bool IsDetectedPlayer()
     {
-        target = GameManager.Instance.Player.transform;
-    }
-
-    bool _IsDetectedPlayer()
-    {
-        if (target != null)
+        if (_target != null)
         {
-            distanceToTarget = Vector3.Distance(transform.position, target.position);
+            distanceToTarget = Vector3.Distance(transform.position, _target.position);
             if (distanceToTarget < detectRange)
             {
                 return true;
@@ -244,61 +146,33 @@ public class Zombie : MonoBehaviour
         return false;
     }
 
-    void _Move(Vector3 position)
+    public void RoamToRandomDirection(UnityAction callBack)
     {
-        //transform.position += direction * moveSpeed * Time.deltaTime;
-        _navMeshAgent.speed = 2f;
-        _navMeshAgent.stoppingDistance = 1f;
-        _navMeshAgent.destination = position;
-        //_navMeshAgent.Move(direction);
+        if (_roamCoroutine == null)
+            _roamCoroutine = StartCoroutine(RoamCoroutine(callBack));
     }
 
-    void _Attack(Transform target)
+    IEnumerator RoamCoroutine(UnityAction callBack)
     {
-        if (attackCoroutine != null)
-        {
-            StopCoroutine(attackCoroutine);
-        }
-
-        attackCoroutine = StartCoroutine(AttackCoroutine());
+        _navMeshAgent.speed = walkSpeed;
+        float randomTime = UnityEngine.Random.Range(0, 5f);
+        float randomX = UnityEngine.Random.Range(-5, 6);
+        float randomZ = UnityEngine.Random.Range(-5, 6);
+        Vector3 roamPosition = new Vector3(randomX, 0f, randomZ);
+        _navMeshAgent.destination = roamPosition;
+        yield return new WaitForSeconds(randomTime);
+        _navMeshAgent.ResetPath();
+        callBack?.Invoke();
+        _roamCoroutine = null;
     }
 
-    //IEnumerator AttackCoroutine()
-    //{
-    //    isAttack = true;
-    //    _animator.SetBool("IsAttack", isAttack);
-    //    yield return new WaitForSeconds(attackDelay);
-    //    isAttack = false;
-    //    _animator.SetBool("IsAttack", isAttack);
-    //    currentState = EZombieState.IDLE;
-    //}
-
-    void _Patrol()
+    public void Chase(Transform target)
     {
-        Transform targetPoint = patrolPoints[patrolPointIndex];
-        Vector3 direction = (targetPoint.position - transform.position).normalized;
-        //transform.LookAt(patrolPoints[patrolPointIndex]);
-        _Move(targetPoint.position);
-
-        if (Vector3.Distance(transform.position, targetPoint.position) < 0.3f)
-        {
-            patrolPointIndex = (patrolPointIndex + 1) % patrolPoints.Length;
-        }
+        _navMeshAgent.speed = runSpeed;
+        _navMeshAgent.destination = target.position;
     }
 
-    void _Chase(Transform target)
-    {
-        //isPatrol = false;
-        Vector3 direction = (target.position - transform.position).normalized;
-        //transform.LookAt(target.position);
-        //if (!isAttack)
-            _Move(target.position);
-
-        //if (!_IsDetectedPlayer())
-        //    isPatrol = true;
-    }
-
-    bool _IsInAttackRange()
+    public bool IsInAttackRange()
     {
         if (distanceToTarget < attackRange)
         {
@@ -307,10 +181,55 @@ public class Zombie : MonoBehaviour
         else
         {
             return false;
-        }    
+        }
     }
 
-    void _Die()
+    public void Attack(Transform target, UnityAction callBack)
+    {
+        if (_attackCoroutine == null)
+            _attackCoroutine = StartCoroutine(AttackCoroutine(callBack));
+    }
+
+    IEnumerator AttackCoroutine(UnityAction callBack)
+    {
+        _animator.SetTrigger("AttackTrigger");
+        float animationLength = _animator.GetNextAnimatorStateInfo(0).length;
+        float deliverDamageTime = 0.3f;
+        yield return new WaitForSeconds(deliverDamageTime);
+        //deliver damage
+        yield return new WaitForSeconds(animationLength - deliverDamageTime);
+        callBack?.Invoke();
+        _attackCoroutine = null;
+    }
+
+    public void DeliverDamage(float damage)
+    {
+        if (_target != null)
+        {
+            if (_target.TryGetComponent<Player>(out Player player))
+            {
+                //apply damage
+            }
+        }
+    }
+
+    void _OnPlayerSpawned(object sender, EventArgs e)
+    {
+        _target = GameManager.Instance.Player.transform;
+    }
+
+    void _SetAnimationParam()
+    {
+        if (null == _animator)
+            return;
+
+        _animator.SetBool("IsIdle", _isIdle);
+        _animator.SetBool("IsRoam", _isRoam);
+        _animator.SetBool("IsChase", _isChase);
+        _animator.SetBool("IsAttack", _isAttack);
+    }
+
+    protected override void _Die()
     {
 
     }

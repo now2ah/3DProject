@@ -88,6 +88,7 @@ public class Player : MonoBehaviour
     private bool _hasRifle = false;
     private float weaponMaxDistance = 100f;
     private float rifleShootDelay = 0.5f;
+    private float rifleDamage = 3f;
     private int currentBulletcount = 5;
     private int maxBulletCount = 5;
     private int bulletCount = 5;
@@ -346,11 +347,12 @@ public class Player : MonoBehaviour
                     if (hitCount <= 0)
                         break;
 
-                    ParticleSystem hitParticleObj = Instantiate(hitParticle);
-                    hitParticleObj.transform.position = hits[i].point;
-                    hitParticleObj.Play();
-                    Destroy(hitParticleObj.gameObject, 1.0f);
+                    _CreateRifleHitParticle(hits[i]);
 
+                    if (hits[i].transform.TryGetComponent<Enemy>(out Enemy enemy))
+                    {
+                        enemy.ApplyDamage(rifleDamage);
+                    }
                     //hits[i].transform.gameObject.SetActive(false);
                     hitCount--;
                 }
@@ -382,6 +384,14 @@ public class Player : MonoBehaviour
             else
                 return 0;
         }
+    }
+
+    void _CreateRifleHitParticle(RaycastHit hit)
+    {
+        ParticleSystem hitParticleObj = Instantiate(hitParticle);
+        hitParticleObj.transform.position = hit.point;
+        hitParticleObj.Play();
+        Destroy(hitParticleObj.gameObject, 1.0f);
     }
 
     IEnumerator ShootDelayCoroutine()
