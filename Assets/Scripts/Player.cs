@@ -84,6 +84,7 @@ public class Player : MonoBehaviour
 
     private bool _isDead = false;
     private float _currentHP;
+    private bool _isNearItem = false;
     
     //shooting
     private bool _isAiming = false;
@@ -97,6 +98,7 @@ public class Player : MonoBehaviour
 
     //coroutine
     private Coroutine _beHitCoroutine = null;
+    private Coroutine _checkPickUpCoroutine = null;
     private Coroutine _pickUpCoroutine = null;
     private Coroutine _shootDelayCoroutine = null;
 
@@ -110,7 +112,7 @@ public class Player : MonoBehaviour
         InputManager.Instance.OnFireInput += _Fire;
         InputManager.Instance.OnAimStartInput += _ZoomIn;
         InputManager.Instance.OnAimEndInput += _ZoomOut;
-        InputManager.Instance.OnPickUpInput += _PickUp;
+        InputManager.Instance.OnPickUpInput += _CheckPickUp;
         InputManager.Instance.OnJumpInput += _Jump;
     }
 
@@ -150,19 +152,6 @@ public class Player : MonoBehaviour
 
     void Update()
     {
-        //_ProcessMouseInput();
-        //_ProcessCameraModeInput();
-        //_ProcessMovement();
-        //_ProcessJump();
-
-        //if (hasRifle)
-        //    _ProcessZoomInOut();
-
-        //if (isAiming)
-        //{
-        //    _Fire();
-        //}
-        //_ProcessChangeWeapons();
         _SetAnimationParams();
     }
 
@@ -170,12 +159,15 @@ public class Player : MonoBehaviour
     {
         if (other.tag == "Item")
         {
-            if (other.TryGetComponent<Rifle>(out Rifle rifle))
-            {
-                rifle.gameObject.SetActive(false);
-                _hasRifle = true;
-                OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
-            }
+            _isNearItem = true;
+            _PickUpItem(other);
+
+            //if (other.TryGetComponent<Rifle>(out Rifle rifle))
+            //{
+            //    rifle.gameObject.SetActive(false);
+            //    _hasRifle = true;
+            //    OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
+            //}
         }
     }
 
@@ -196,6 +188,25 @@ public class Player : MonoBehaviour
             _currentHP -= damage;
 
             if (_currentHP <= 0) { _Die(); }
+        }
+    }
+
+    public void BeHit()
+    {
+        if (_beHitCoroutine == null)
+        {
+            _beHitCoroutine = StartCoroutine(BeHitCoroutine());
+        }
+    }
+
+    IEnumerator BeHitCoroutine()
+    {
+        if (_animator != null)
+        {
+            _animator.SetTrigger("IsHit");
+            AudioManager.Instance.PlaySfx(AudioManager.ESfx.BEHIT);
+            yield return null;
+            _beHitCoroutine = null;
         }
     }
 
@@ -225,16 +236,6 @@ public class Player : MonoBehaviour
         return new PlayerStatsForUI(_hasRifle, _isAiming);
     }
 
-    IEnumerator BeHitCoroutine()
-    {
-        if (_animator != null)
-        {
-            _animator.SetTrigger("IsHit");
-            AudioManager.Instance.PlaySfx(AudioManager.ESfx.BEHIT);
-            yield return null;
-            _beHitCoroutine = null;
-        }
-    }
 
     void _UpdateCameraPosition()
     {
@@ -418,25 +419,45 @@ public class Player : MonoBehaviour
         }
     }
 
-    void _PickUp(object sender, EventArgs e)
+    void _CheckPickUp(object sender, EventArgs e)
     {
-        if (_pickUpCoroutine != null)
-        {
-            StopCoroutine(_pickUpCoroutine);
-        }
-
-        _pickUpCoroutine = StartCoroutine(PickUpCoroutine());
+        if (null == _checkPickUpCoroutine)
+            _checkPickUpCoroutine = StartCoroutine(CheckPickUpCoroutine());
     }
 
-    IEnumerator PickUpCoroutine()
+    IEnumerator CheckPickUpCoroutine()
+    {
+        _itemPickUpTrigger.enabled = true;
+        yield return new WaitForSeconds(0.1f);
+        _itemPickUpTrigger.enabled = false;
+        _checkPickUpCoroutine = null;
+    }
+
+    void _PickUpItem(Collider col)
+    {
+        if (col.TryGetComponent<Rifle>(out Rifle rifle))
+        {
+            if (_pickUpCoroutine != null)
+            {
+                StopCoroutine(_pickUpCoroutine);
+            }
+
+            _pickUpCoroutine = StartCoroutine(PickUpCoroutine(rifle));
+        }
+    }
+
+    IEnumerator PickUpCoroutine(Item item)
     {
         _animator.SetLayerWeight(1, 0.8f);
         _animator.SetTrigger("IsPickUp");
         float animationLength = _animator.GetCurrentAnimatorStateInfo(1).length;
         float untilPickupLength = 1.0f;
         yield return new WaitForSeconds(untilPickupLength);
-        _itemPickUpTrigger.enabled = true;
+        item.gameObject.SetActive(false);
+        _isNearItem = false;
         yield return new WaitForSeconds(animationLength - untilPickupLength);
+        _hasRifle = true;
+        OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
         _animator.SetLayerWeight(1, 0);
         _itemPickUpTrigger.enabled = false;
     }
@@ -447,14 +468,6 @@ public class Player : MonoBehaviour
         {
             _verticalVelocity += Mathf.Sqrt(jumpHeight * -3f * _gravity);
             _animator.SetTrigger("JumpTrigger");
-        }
-    }
-
-    void _BeHit()
-    {
-        if (_beHitCoroutine == null)
-        {
-            _beHitCoroutine = StartCoroutine(BeHitCoroutine());
         }
     }
 
