@@ -362,6 +362,11 @@ public class Player : MonoBehaviour
                     {
                         enemy.ApplyDamage(rifleDamage);
                     }
+
+                    if (hits[i].collider.transform.tag == "Seperatable")
+                    {
+                        hits[i].collider.transform.gameObject.SetActive(false);
+                    }
                     //hits[i].transform.gameObject.SetActive(false);
                     hitCount--;
                 }

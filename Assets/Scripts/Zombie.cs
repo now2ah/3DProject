@@ -169,7 +169,10 @@ public class Zombie : Enemy
         yield return new WaitForSeconds(randomTime);
         if (_navMeshAgent != null)
             _navMeshAgent.ResetPath();
-        callBack?.Invoke();
+
+        if (!_isDead)
+            callBack?.Invoke();
+
         _roamCoroutine = null;
     }
 
