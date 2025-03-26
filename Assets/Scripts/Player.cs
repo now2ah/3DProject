@@ -7,18 +7,16 @@ using UnityEngine.Rendering;
 
 public class PlayerStatsForUI
 {
+    public float maxHP;
+    public float curHP;
     public bool hasRifle;
     public bool isAiming;
     public int bulletCount;
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="hasRifle"></param>
-    /// <param name="isAiming"></param>
-    /// <param name="bulletCount"></param>
-    public PlayerStatsForUI(bool hasRifle, bool isAiming, int bulletCount)
+    public PlayerStatsForUI(float maxHP, float curHP, bool hasRifle, bool isAiming, int bulletCount)
     {
+        this.maxHP = maxHP;
+        this.curHP = curHP;
         this.hasRifle = hasRifle;
         this.isAiming = isAiming;
         this.bulletCount = bulletCount;
@@ -195,6 +193,7 @@ public class Player : MonoBehaviour
         if (!_isDead)
         {
             _currentHP -= damage;
+            OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
 
             if (_currentHP <= 0) { _Die(); }
         }
@@ -242,7 +241,7 @@ public class Player : MonoBehaviour
 
     PlayerStatsForUI _GetPlayerStats()
     {
-        return new PlayerStatsForUI(_hasRifle, _isAiming, _bulletCount);
+        return new PlayerStatsForUI(maxHP, _currentHP, _hasRifle, _isAiming, _bulletCount);
     }
 
 

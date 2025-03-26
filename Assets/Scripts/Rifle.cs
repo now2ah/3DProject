@@ -1,5 +1,4 @@
 using JetBrains.Annotations;
-using UnityEditorInternal;
 using UnityEngine;
 
 public class Rifle : Item

@@ -131,22 +131,22 @@ public class InputManager : Singleton<InputManager>
     {
         if (Input.GetMouseButtonDown(0))
         {
-            OnFireInput.Invoke(this, EventArgs.Empty);
+            OnFireInput?.Invoke(this, EventArgs.Empty);
         }
 
         if (Input.GetMouseButtonDown(1))
         {
-            OnAimStartInput.Invoke(this, EventArgs.Empty);
+            OnAimStartInput?.Invoke(this, EventArgs.Empty);
         }
 
         if (Input.GetMouseButtonUp(1))
         {
-            OnAimEndInput.Invoke(this, EventArgs.Empty);
+            OnAimEndInput?.Invoke(this, EventArgs.Empty);
         }
 
         if (Input.GetMouseButtonDown(2))
         {
-            OnLightInput.Invoke(this, EventArgs.Empty);
+            OnLightInput?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -154,17 +154,17 @@ public class InputManager : Singleton<InputManager>
     {
         if (Input.GetKeyDown(equip1Input))
         {
-            OnEquip1Input.Invoke(this, EventArgs.Empty);
+            OnEquip1Input?.Invoke(this, EventArgs.Empty);
         }
 
         if (Input.GetKeyDown(pickUpInput))
         {
-            OnPickUpInput.Invoke(this, EventArgs.Empty);
+            OnPickUpInput?.Invoke(this, EventArgs.Empty);
         }
 
         if (Input.GetKeyDown(jumpInput))
         {
-            OnJumpInput.Invoke(this, EventArgs.Empty);
+            OnJumpInput?.Invoke(this, EventArgs.Empty);
         }
     }
 }

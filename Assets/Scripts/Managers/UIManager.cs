@@ -1,6 +1,9 @@
 using System;
+using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public enum EUIObject
 {
@@ -12,7 +15,9 @@ public enum EUIObject
 public class UIManager : Singleton<UIManager>
 {
     [SerializeField] private GameObject _GameOverPanel;
+    [SerializeField] private TextMeshProUGUI _toMainText;
 
+    [SerializeField] private Slider _hpSlider;
     [SerializeField] private GameObject _crossHairUI;
     [SerializeField] private GameObject _rifleUI;
     [SerializeField] private GameObject _bulletUI;
@@ -52,6 +57,11 @@ public class UIManager : Singleton<UIManager>
         }
     }
 
+    public void LoadMainScene()
+    {
+        SceneManager.LoadScene(0);
+    }
+
     void _OnPlayerSpawned(object sender, EventArgs e)
     {
         GameManager.Instance.Player.OnPlayerStatsChange += _OnValueChange;
@@ -64,6 +74,13 @@ public class UIManager : Singleton<UIManager>
 
     void _UpdateUIs(PlayerStatsForUI stats)
     {
+        if (_hpSlider != null)
+        {
+            float hpRatio = stats.curHP / stats.maxHP;
+
+            _hpSlider.value = hpRatio;
+        }
+
         if (stats.hasRifle)
         {
             SetActiveUI(EUIObject.RIFLE, stats.hasRifle);
@@ -83,5 +100,22 @@ public class UIManager : Singleton<UIManager>
         {
             _GameOverPanel.SetActive(true);
         }
+
+        if (null != _toMainText)
+        {
+            StartCoroutine(ToMainCountCoroutine(_toMainText));
+        }
+    }
+
+    IEnumerator ToMainCountCoroutine(TextMeshProUGUI text)
+    {
+        int count = 3;
+        while(count-- > 0)
+        {
+            text.text = "To Main " + count;
+            yield return new WaitForSeconds(1);
+        }
+        _GameOverPanel.SetActive(false);
+        SceneManager.LoadScene(0);
     }
 }
