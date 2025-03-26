@@ -19,7 +19,12 @@ public class ZombieIdleState : State
     public override void UpdateState()
     {
         _actTime += Time.deltaTime;
-        
+
+        if (_zombie.IsAttacked)
+        {
+            _zombie.ChangeState(Zombie.EZombieState.CHASE);
+        }
+
         if (_zombie.IsDetectedPlayer())
         {
             _zombie.ChangeState(Zombie.EZombieState.CHASE);
@@ -61,6 +66,11 @@ public class ZombieRoamState : State
 
     public override void UpdateState()
     {
+        if (_zombie.IsAttacked)
+        {
+            _zombie.ChangeState(Zombie.EZombieState.CHASE);
+        }
+
         if (_zombie.IsDetectedPlayer())
         {
             _zombie.ChangeState(Zombie.EZombieState.CHASE);
@@ -94,7 +104,7 @@ public class ZombieChaseState : State
 
     public override void UpdateState()
     {
-        if (!_zombie.IsDetectedPlayer())
+        if (!_zombie.IsDetectedPlayer() && !_zombie.IsAttacked)
         {
             _zombie.ChangeState(Zombie.EZombieState.IDLE);
         }

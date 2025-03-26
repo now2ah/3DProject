@@ -9,20 +9,19 @@ public class PlayerStatsForUI
 {
     public bool hasRifle;
     public bool isAiming;
-    public int currentBullet;
-    public int maxBullet;
+    public int bulletCount;
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="hasRifle"></param>
     /// <param name="isAiming"></param>
-    /// <param name="currentBullet"></param>
-    /// <param name="maxBullet"></param>
-    public PlayerStatsForUI(bool hasRifle, bool isAiming)
+    /// <param name="bulletCount"></param>
+    public PlayerStatsForUI(bool hasRifle, bool isAiming, int bulletCount)
     {
         this.hasRifle = hasRifle;
         this.isAiming = isAiming;
+        this.bulletCount = bulletCount;
     }
 }
 
@@ -49,6 +48,7 @@ public class Player : MonoBehaviour
 
     [Header("Item")]
     public LayerMask itemLayerMask;
+    public GameObject flashLightObj;
 
     [Header("Weapon")]
     public GameObject rifleObject;
@@ -85,6 +85,8 @@ public class Player : MonoBehaviour
     private bool _isDead = false;
     private float _currentHP;
     private bool _isNearItem = false;
+
+    public bool IsDead => _isDead;
     
     //shooting
     private bool _isAiming = false;
@@ -95,6 +97,13 @@ public class Player : MonoBehaviour
     private float weaponMaxDistance = 100f;
     private float rifleShootDelay = 0.5f;
     private float rifleDamage = 3f;
+    private int _bulletCount = 0;
+
+    //item
+    private bool _isPicking = false;
+    private List<Item> _itemList;
+    private bool _hasFlash = false;
+    private bool _isFlashOn = false;
 
     //coroutine
     private Coroutine _beHitCoroutine = null;
@@ -114,6 +123,7 @@ public class Player : MonoBehaviour
         InputManager.Instance.OnAimEndInput += _ZoomOut;
         InputManager.Instance.OnPickUpInput += _CheckPickUp;
         InputManager.Instance.OnJumpInput += _Jump;
+        InputManager.Instance.OnLightInput += _LightSwitch;
     }
 
     private void Awake()
@@ -121,6 +131,7 @@ public class Player : MonoBehaviour
         _characterController = GetComponent<CharacterController>();
         _animator = GetComponent<Animator>();
         _itemPickUpTrigger = GetComponent<BoxCollider>();
+        _itemList = new List<Item>();
 
         Transform[] transforms = GetComponentsInChildren<Transform>();
         foreach(var tr in transforms)
@@ -155,19 +166,17 @@ public class Player : MonoBehaviour
         _SetAnimationParams();
     }
 
+    private void LateUpdate()
+    {
+        _UpdateCameraPosition();
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.tag == "Item")
         {
             _isNearItem = true;
             _PickUpItem(other);
-
-            //if (other.TryGetComponent<Rifle>(out Rifle rifle))
-            //{
-            //    rifle.gameObject.SetActive(false);
-            //    _hasRifle = true;
-            //    OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
-            //}
         }
     }
 
@@ -233,7 +242,7 @@ public class Player : MonoBehaviour
 
     PlayerStatsForUI _GetPlayerStats()
     {
-        return new PlayerStatsForUI(_hasRifle, _isAiming);
+        return new PlayerStatsForUI(_hasRifle, _isAiming, _bulletCount);
     }
 
 
@@ -244,12 +253,28 @@ public class Player : MonoBehaviour
 
         Vector3 direction = new Vector3(0, 0, -_currentCamDistance);
 
-        _cameraTransform.position = _playerLookTransform.position + thirdPersonOffset + Quaternion.Euler(_pitch, _yaw, 0) * direction;
+        Vector3 rayOrigin = transform.position + transform.up * 2f;
+        Vector3 rayDirection = _playerLookTransform.position + thirdPersonOffset + Quaternion.Euler(_pitch, _yaw, 0) * direction;
+
+        Ray ray = new Ray(rayOrigin, rayDirection);
+
+        if (Physics.Linecast(rayOrigin, rayDirection, out RaycastHit hit))
+        {
+            _cameraTransform.position = hit.point;
+        }
+        else
+        {
+            _cameraTransform.position = _playerLookTransform.position + thirdPersonOffset + Quaternion.Euler(_pitch, _yaw, 0) * direction;
+        }
+
         _cameraTransform.LookAt(_playerLookTransform.position + new Vector3(0, thirdPersonOffset.y, 0));
     }
 
     void _ProcessMouseInput(object sender, Vector2 mouseInput)
     {
+        if (_isDead)
+            return;
+
         float mouseX = mouseInput.x * mouseSensityvity * Time.deltaTime * 2f;
         float mouseY = mouseInput.y * mouseSensityvity * Time.deltaTime;
 
@@ -260,6 +285,9 @@ public class Player : MonoBehaviour
 
     void _ProcessMovement(object o, Vector2 inputAxis)
     {
+        if (_isDead)
+            return;
+
         _horizontal = inputAxis.x;
         _vertical = inputAxis.y;
 
@@ -282,11 +310,14 @@ public class Player : MonoBehaviour
         Vector3 moveDirection = transform.right * _horizontal + transform.forward * _vertical + transform.up * _verticalVelocity;
         _characterController.Move(moveDirection * _currentSpeed * Time.deltaTime);
 
-        _UpdateCameraPosition();
+        //_UpdateCameraPosition();
     }
 
     void _ZoomIn(object sender, EventArgs e)
     {
+        if (_isDead)
+            return;
+
         if (!_hasRifle)
             return;
 
@@ -304,6 +335,9 @@ public class Player : MonoBehaviour
 
     void _ZoomOut(object sender, EventArgs e)
     {
+        if (_isDead)
+            return;
+
         if (!_hasRifle)
             return;
 
@@ -333,10 +367,13 @@ public class Player : MonoBehaviour
 
     void _Fire(object sender, EventArgs e)
     {
+        if (_isDead)
+            return;
+
         if (!_isAiming)
             return;
 
-        if (_canFire)
+        if (_canFire && _bulletCount > 0)
         {
             _animator.SetTrigger("FireTrigger");
 
@@ -379,6 +416,9 @@ public class Player : MonoBehaviour
             {
                 _shootDelayCoroutine = StartCoroutine(ShootDelayCoroutine());
             }
+
+            _bulletCount--;
+            OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
         }
     }
 
@@ -416,6 +456,9 @@ public class Player : MonoBehaviour
 
     void _ProcessChangeWeapon(object sender, EventArgs e)
     {
+        if (_isDead)
+            return;
+
         if (_hasRifle)
         {
             //audioSource.PlayOneShot(audioClipEquipWeapon);
@@ -440,19 +483,26 @@ public class Player : MonoBehaviour
 
     void _PickUpItem(Collider col)
     {
-        if (col.TryGetComponent<Rifle>(out Rifle rifle))
+        if (_isDead)
+            return;
+
+        if (_isPicking)
+            return;
+
+        if (col.TryGetComponent<Item>(out Item item))
         {
             if (_pickUpCoroutine != null)
             {
                 StopCoroutine(_pickUpCoroutine);
             }
 
-            _pickUpCoroutine = StartCoroutine(PickUpCoroutine(rifle));
+            _pickUpCoroutine = StartCoroutine(PickUpCoroutine(item));
         }
     }
 
     IEnumerator PickUpCoroutine(Item item)
     {
+        _isPicking = true;
         _animator.SetLayerWeight(1, 0.8f);
         _animator.SetTrigger("IsPickUp");
         float animationLength = _animator.GetCurrentAnimatorStateInfo(1).length;
@@ -461,18 +511,63 @@ public class Player : MonoBehaviour
         item.gameObject.SetActive(false);
         _isNearItem = false;
         yield return new WaitForSeconds(animationLength - untilPickupLength);
-        _hasRifle = true;
+        
+        if (_itemList != null)
+        {
+            _itemList.Add(item);
+        }
+
+        _CheckItem(item);
+
         OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
         _animator.SetLayerWeight(1, 0);
         _itemPickUpTrigger.enabled = false;
+        _isPicking = false;
+    }
+
+    void _CheckItem(Item item)
+    {
+        if (item.ItemType == EItemType.RIFLE)
+        {
+            _hasRifle = true;
+        }
+
+        if (item.ItemType == EItemType.BULLET)
+        {
+            if (item.TryGetComponent<Bullet>(out Bullet bullet))
+            {
+                _bulletCount += bullet.amount;
+                OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
+            }
+        }
+
+        if (item.ItemType == EItemType.FLASH_LIGHT)
+        {
+            _hasFlash = true;
+        }
     }
 
     void _Jump(object sender, EventArgs e)
     {
+        if (_isDead)
+            return;
+
         if (_characterController.isGrounded)
         {
             _verticalVelocity += Mathf.Sqrt(jumpHeight * -3f * _gravity);
             _animator.SetTrigger("JumpTrigger");
+        }
+    }
+
+    void _LightSwitch(object sender, EventArgs e)
+    {
+        if (_isDead)
+            return;
+
+        if (_hasFlash)
+        {
+            _isFlashOn = !_isFlashOn;
+            flashLightObj.SetActive(_isFlashOn);
         }
     }
 
@@ -486,7 +581,12 @@ public class Player : MonoBehaviour
 
     void _Die()
     {
-
+        if (!_isDead)
+        {
+            _isDead = true;
+            _animator.SetTrigger("IsDead");
+            GameManager.Instance.GameOver();
+        }
     }
 
     //void _DrawDebugBox(Vector3 origin, Vector3 direction)

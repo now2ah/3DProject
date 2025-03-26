@@ -1,12 +1,19 @@
 using JetBrains.Annotations;
+using UnityEditorInternal;
 using UnityEngine;
 
 public class Rifle : Item
 {
     public int damage;
 
-    public Rifle(int damage) : base(EItemType.RIFLE)
+    private void Awake()
     {
-        this.damage = damage;
+        _Initialize();
+    }
+
+    protected override void _Initialize()
+    {
+        _type = EItemType.RIFLE;
+        damage = 3;
     }
 }

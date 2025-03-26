@@ -18,6 +18,7 @@ public class GameManager : Singleton<GameManager>
     public Player Player { get { return _player; } set { _player = value; } }
 
     public event EventHandler OnPlayerSpawned;
+    public event EventHandler OnGameOver;
 
     private void Awake()
     {
@@ -27,13 +28,22 @@ public class GameManager : Singleton<GameManager>
     private void Start()
     {
         _LoadManagers();
-        _SpawnPlayer();
-        
+        _InitiateGame();
+    }
+
+    public void GameOver()
+    {
+        isRunning = false;
+        OnGameOver?.Invoke(this, EventArgs.Empty);
     }
 
     void _InitiateGame()
     {
-        isRunning = true;
+        if (!isRunning)
+        {
+            isRunning = true;
+            _SpawnPlayer();
+        }
     }
 
     void _LoadManagers()

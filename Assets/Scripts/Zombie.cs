@@ -209,8 +209,11 @@ public class Zombie : Enemy
         yield return new WaitForSeconds(deliverDamageTime);
         if (_target.TryGetComponent<Player>(out Player player))
         {
-            player.BeHit();
-            player.ApplyDamage(attackDamage);
+            if (!player.IsDead)
+            {
+                player.BeHit();
+                player.ApplyDamage(attackDamage);
+            }
         }
         yield return new WaitForSeconds(animationLength - deliverDamageTime);
         callBack?.Invoke();

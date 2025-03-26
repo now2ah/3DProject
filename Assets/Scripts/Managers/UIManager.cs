@@ -11,6 +11,8 @@ public enum EUIObject
 
 public class UIManager : Singleton<UIManager>
 {
+    [SerializeField] private GameObject _GameOverPanel;
+
     [SerializeField] private GameObject _crossHairUI;
     [SerializeField] private GameObject _rifleUI;
     [SerializeField] private GameObject _bulletUI;
@@ -31,6 +33,7 @@ public class UIManager : Singleton<UIManager>
     private void Start()
     {
         GameManager.Instance.OnPlayerSpawned += _OnPlayerSpawned;
+        GameManager.Instance.OnGameOver += _OnGameOver;
     }
 
     public void SetActiveUI(EUIObject ui, bool isOn)
@@ -64,13 +67,21 @@ public class UIManager : Singleton<UIManager>
         if (stats.hasRifle)
         {
             SetActiveUI(EUIObject.RIFLE, stats.hasRifle);
+            SetActiveUI(EUIObject.BULLET, true);
+            _bulletText.text = "Bullet : " + stats.bulletCount;
         }
 
         if (stats.isAiming)
         {
             SetActiveUI(EUIObject.CROSSHAIR, stats.isAiming);
         }
+    }
 
-
+    void _OnGameOver(object sender, EventArgs e)
+    {
+        if (null != _GameOverPanel)
+        {
+            _GameOverPanel.SetActive(true);
+        }
     }
 }

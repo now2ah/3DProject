@@ -15,8 +15,10 @@ public abstract class Enemy : MonoBehaviour
 
     protected float _currentHP;
     protected bool _isDead;
+    protected bool _isAttacked = false;
 
     public float CurrentHP { get { return _currentHP; } }
+    public bool IsAttacked { get { return _isAttacked; } }
 
     protected Rigidbody _rigidBody;
     protected NavMeshAgent _navMeshAgent;
@@ -37,6 +39,9 @@ public abstract class Enemy : MonoBehaviour
     {
         if (!_isDead)
         {
+            if (!_isAttacked)
+                _isAttacked = true;
+
             _currentHP -= damage;
 
             if (_currentHP <= 0) { _Die(); }

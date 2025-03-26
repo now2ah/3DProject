@@ -19,6 +19,7 @@ public class InputManager : Singleton<InputManager>
     public event EventHandler OnAimEndInput;
     public event EventHandler OnPickUpInput;
     public event EventHandler OnJumpInput;
+    public event EventHandler OnLightInput;
 
     private void Awake()
     {
@@ -98,6 +99,14 @@ public class InputManager : Singleton<InputManager>
                 OnJumpInput -= d as EventHandler;
             }
         }
+
+        if (OnLightInput != null)
+        {
+            foreach (var d in OnLightInput.GetInvocationList())
+            {
+                OnLightInput -= d as EventHandler;
+            }
+        }
     }
 
     void _HandleMouseInput()
@@ -133,6 +142,11 @@ public class InputManager : Singleton<InputManager>
         if (Input.GetMouseButtonUp(1))
         {
             OnAimEndInput.Invoke(this, EventArgs.Empty);
+        }
+
+        if (Input.GetMouseButtonDown(2))
+        {
+            OnLightInput.Invoke(this, EventArgs.Empty);
         }
     }
 
