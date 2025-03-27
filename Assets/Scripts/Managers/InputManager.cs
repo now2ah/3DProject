@@ -10,6 +10,7 @@ public class InputManager : Singleton<InputManager>
     public KeyCode pickUpInput = KeyCode.E;
     public KeyCode jumpInput = KeyCode.Space;
     public KeyCode reloadInput = KeyCode.R;
+    public KeyCode pauseInput = KeyCode.Escape;
     
     public event EventHandler<Vector2> OnLookInput;
     public event EventHandler<Vector2> OnMoveInput;
@@ -20,6 +21,7 @@ public class InputManager : Singleton<InputManager>
     public event EventHandler OnPickUpInput;
     public event EventHandler OnJumpInput;
     public event EventHandler OnLightInput;
+    public event EventHandler OnPauseInput;
 
     private void Awake()
     {
@@ -43,6 +45,14 @@ public class InputManager : Singleton<InputManager>
     private void OnDisable()
     {
         _UnsubscribeEvents();
+
+        if (OnPauseInput != null)
+        {
+            foreach (var d in OnPauseInput.GetInvocationList())
+            {
+                OnPauseInput -= d as EventHandler;
+            }
+        }
     }
 
     void _OnGameOver(object sender, EventArgs e)
@@ -186,6 +196,11 @@ public class InputManager : Singleton<InputManager>
         if (Input.GetKeyDown(jumpInput))
         {
             OnJumpInput?.Invoke(this, EventArgs.Empty);
+        }
+
+        if (Input.GetKeyDown(pauseInput))
+        {
+            OnPauseInput?.Invoke(this, EventArgs.Empty);
         }
     }
 }

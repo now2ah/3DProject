@@ -109,6 +109,7 @@ public class ZombieChaseState : State
         //{
         //    _zombie.ChangeState(Zombie.EZombieState.IDLE);
         //}
+        _zombie.IsDetectedPlayer();
 
         _zombie.Chase(_zombie.Target);
 

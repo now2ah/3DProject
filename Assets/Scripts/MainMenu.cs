@@ -33,6 +33,10 @@ public class MainMenu : MonoBehaviour
         {
             GameManager.Instance.GameStart();
         }
+        else if (scene.name == "MainMenuScene")
+        {
+            AudioManager.Instance.PlayBgm(AudioManager.eBgm.BGM_MAIN);
+        }
     }
 
     //화이팅^^ 하하~

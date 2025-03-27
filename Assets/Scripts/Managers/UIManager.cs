@@ -20,6 +20,8 @@ public class UIManager : Singleton<UIManager>
     [SerializeField] private TextMeshProUGUI _toMainSuccessText;
     [SerializeField] private GameObject _startTutorial;
     [SerializeField] private GameObject _rifleTutorial;
+    [SerializeField] private GameObject _lightTutorial;
+    [SerializeField] private GameObject _pausePanel;
 
     [SerializeField] private Slider _hpSlider;
     [SerializeField] private TextMeshProUGUI _hpText;
@@ -46,6 +48,7 @@ public class UIManager : Singleton<UIManager>
         GameManager.Instance.OnGameStart += OnGameStart;
         GameManager.Instance.OnGameOver += _OnGameOver;
         GameManager.Instance.OnGameSucceeded += _OnGameSucceeded;
+        InputManager.Instance.OnPauseInput += _OnPauseInput;
     }
 
     public void SetActiveUI(EUIObject ui, bool isOn)
@@ -67,6 +70,29 @@ public class UIManager : Singleton<UIManager>
     public void LoadMainScene()
     {
         SceneManager.LoadScene(0);
+    }
+
+    public void Resume()
+    {
+        if (_pausePanel != null)
+        {
+            AudioManager.Instance.PlaySfx(AudioManager.ESfx.UI_CLICK);
+            Cursor.lockState = CursorLockMode.Locked;
+            Time.timeScale = 1f;
+            _pausePanel.SetActive(false);
+        }
+    }
+
+    public void Quit()
+    {
+        if (_pausePanel != null)
+        {
+            AudioManager.Instance.PlaySfx(AudioManager.ESfx.UI_CLICK);
+            Cursor.lockState = CursorLockMode.Confined;
+            Time.timeScale = 1f;
+            _pausePanel.SetActive(false);
+            GameManager.Instance.GameOver();
+        }
     }
 
     private void OnGameStart(object sender, EventArgs e)
@@ -103,6 +129,7 @@ public class UIManager : Singleton<UIManager>
         if (_startTutorial != null)
         {
             _startTutorial.SetActive(false);
+            StartCoroutine(LightTutorialCoroutine());
         }
     }
     private void _OnPickUpRifle(object sender, EventArgs e)
@@ -110,6 +137,16 @@ public class UIManager : Singleton<UIManager>
         if (_rifleTutorial != null)
         {
             StartCoroutine(RifleTutorialCoroutine());
+        }
+    }
+
+    private void _OnPauseInput(object sender, EventArgs e)
+    {
+        if (_pausePanel != null && GameManager.Instance.IsRunning)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Time.timeScale = 0.01f;
+            _pausePanel.SetActive(true);
         }
     }
 
@@ -146,6 +183,11 @@ public class UIManager : Singleton<UIManager>
             _gameOverPanel.SetActive(true);
         }
 
+        if (null != _bulletUI)
+        {
+            _bulletUI.SetActive(false);
+        }
+
         if (null != _hpSlider)
         {
             _hpSlider.gameObject.SetActive(false);
@@ -164,6 +206,16 @@ public class UIManager : Singleton<UIManager>
             _gameSuccessPanel.SetActive(true);
         }
 
+        if (null != _bulletUI)
+        {
+            _bulletUI.SetActive(false);
+        }
+
+        if (null != _hpSlider)
+        {
+            _hpSlider.gameObject.SetActive(false);
+        }
+
         if (null != _toMainText)
         {
             StartCoroutine(ToMainCountCoroutine(_gameSuccessPanel, _toMainSuccessText));
@@ -175,7 +227,7 @@ public class UIManager : Singleton<UIManager>
         int count = 3;
         while(count-- > 0)
         {
-            text.text = "To Main " + count;
+            text.text = "To Main " + "(" + count + ")";
             yield return new WaitForSeconds(1);
         }
         panel.SetActive(false);
@@ -190,6 +242,16 @@ public class UIManager : Singleton<UIManager>
             _rifleTutorial.SetActive(true);
             yield return new WaitForSeconds(3.0f);
             _rifleTutorial.SetActive(false);
+        }
+    }
+
+    IEnumerator LightTutorialCoroutine()
+    {
+        if (_lightTutorial != null)
+        {
+            _lightTutorial.SetActive(true);
+            yield return new WaitForSeconds(3.0f);
+            _lightTutorial.SetActive(false);
         }
     }
 }

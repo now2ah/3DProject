@@ -683,21 +683,20 @@ public class Player : MonoBehaviour
 
             if (clipNum == 1)
             {
-                AudioManager.Instance.PlaySfxAt(AudioManager.ESfx.GROWL1, transform.position + transform.forward * -1f * 3f);
+                AudioManager.Instance.PlaySfxAt(AudioManager.ESfx.GROWL1, transform.position + transform.forward * -1f * 2f);
             }
             else if (clipNum == 2)
             {
-                AudioManager.Instance.PlaySfxAt(AudioManager.ESfx.GROWL2, transform.position + transform.forward * -1f * 3f);
+                AudioManager.Instance.PlaySfxAt(AudioManager.ESfx.GROWL2, transform.position + transform.forward * -1f * 2f);
             }
             else if (clipNum == 3)
             {
-                AudioManager.Instance.PlaySfxAt(AudioManager.ESfx.GROWL3, transform.position + transform.forward * -1f * 3f);
+                AudioManager.Instance.PlaySfxAt(AudioManager.ESfx.GROWL3, transform.position + transform.forward * -1f * 2f);
             }
             
             _curTime = 0f;
         }
     }
-
     //void _DrawDebugBox(Vector3 origin, Vector3 direction)
     //{
     //    Vector3 endPoint = origin + direction * boxCastDistance;
@@ -711,7 +710,7 @@ public class Player : MonoBehaviour
     //    corners[5] = origin + new Vector3(boxSize.x, -boxSize.y, boxSize.z) / 2;
     //    corners[6] = origin + new Vector3(-boxSize.x, boxSize.y, boxSize.z) / 2;
     //    corners[7] = origin + new Vector3(boxSize.x, boxSize.y, boxSize.z) / 2;
-        
+
     //    Debug.DrawLine(corners[0], corners[1], Color.green, 3f);
     //    Debug.DrawLine(corners[1], corners[3], Color.green, 3f);
     //    Debug.DrawLine(corners[3], corners[2], Color.green, 3f);

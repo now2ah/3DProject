@@ -75,7 +75,11 @@ public class Zombie : Enemy
 
     private void OnDisable()
     {
-        GameManager.Instance.Player.OnFire -= _OnFire;
+        if (GameManager.Instance.Player != null)
+        {
+            GameManager.Instance.Player.OnFire -= _OnFire;
+        }
+        
         GameManager.Instance.OnPlayerSpawned -= _OnPlayerSpawned;
     }
 
@@ -135,7 +139,7 @@ public class Zombie : Enemy
 
     public void StopMove()
     {
-        if (_navMeshAgent != null)
+        if (_navMeshAgent != null && _navMeshAgent.isOnNavMesh)
         {
             _navMeshAgent.ResetPath();
             _navMeshAgent.velocity = Vector3.zero;
@@ -202,7 +206,7 @@ public class Zombie : Enemy
 
     public void Chase(Transform target)
     {
-        if (_navMeshAgent != null)
+        if (_navMeshAgent != null && _navMeshAgent.isOnNavMesh)
         {
             _navMeshAgent.speed = runSpeed;
             _navMeshAgent.destination = target.position;

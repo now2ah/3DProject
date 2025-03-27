@@ -8,8 +8,9 @@ public class GameManager : Singleton<GameManager>
 
     [SerializeField] private GameObject[] _managers;
     [SerializeField] private bool isRunning = false;
-    //fix later
     [SerializeField] private GameObject playerPrefab;
+
+    public bool IsRunning => isRunning;
 
     private GameObject _playerObj;
     private Player _player;
@@ -30,7 +31,13 @@ public class GameManager : Singleton<GameManager>
 
     private void Start()
     {
+        OnManagersLoaded += _OnManagersLoaded;
         StartCoroutine(LoadManagerCoroutine());
+    }
+
+    private void _OnManagersLoaded(object sender, EventArgs e)
+    {
+        AudioManager.Instance.PlayBgm(AudioManager.eBgm.BGM_MAIN);
     }
 
     private void OnDisable()
