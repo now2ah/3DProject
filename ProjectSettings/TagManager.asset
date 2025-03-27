@@ -9,6 +9,8 @@ TagManager:
   - Item
   - Door
   - Seperatable
+  - StartPosition
+  - Goal
   layers:
   - Default
   - TransparentFX

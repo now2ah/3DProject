@@ -18,7 +18,9 @@ public class GameManager : Singleton<GameManager>
     public Player Player { get { return _player; } set { _player = value; } }
 
     public event EventHandler OnPlayerSpawned;
+    public event EventHandler OnGameStart;
     public event EventHandler OnGameOver;
+    public event EventHandler OnGameSucceeded;
 
     private void Awake()
     {
@@ -28,7 +30,12 @@ public class GameManager : Singleton<GameManager>
     private void Start()
     {
         _LoadManagers();
+    }
+
+    public void GameStart()
+    {
         _InitiateGame();
+        OnGameStart.Invoke(this, EventArgs.Empty);
     }
 
     public void GameOver()
@@ -37,11 +44,18 @@ public class GameManager : Singleton<GameManager>
         OnGameOver?.Invoke(this, EventArgs.Empty);
     }
 
+    public void GameSucceeded()
+    {
+        isRunning = false;
+        OnGameSucceeded?.Invoke(this, EventArgs.Empty);
+    }
+
     void _InitiateGame()
     {
         if (!isRunning)
         {
             isRunning = true;
+            _FindPlayerStartObject();
             _SpawnPlayer();
         }
     }
@@ -54,6 +68,14 @@ public class GameManager : Singleton<GameManager>
             {
                 Instantiate(obj);
             }
+        }
+    }
+
+    void _FindPlayerStartObject()
+    {
+        if (null == playerStartPointObject)
+        {
+            playerStartPointObject = GameObject.FindGameObjectWithTag("StartPosition");
         }
     }
 
@@ -73,6 +95,7 @@ public class GameManager : Singleton<GameManager>
                 _playerObj = Instantiate(playerPrefab, playerStartPointObject.transform.position, Quaternion.identity);
                 _player = _playerObj.GetComponent<Player>();
                 OnPlayerSpawned.Invoke(this, EventArgs.Empty);
+                _spawnPlayerCoroutine = null;
             }
         }
     }

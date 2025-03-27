@@ -26,6 +26,12 @@ public class InputManager : Singleton<InputManager>
         DontDestroyOnLoad(gameObject);
     }
 
+    private void Start()
+    {
+        GameManager.Instance.OnGameOver += _OnGameOver;
+        GameManager.Instance.OnGameSucceeded += _OnGameSucceeded;
+    }
+
     void Update()
     {
         _HandleMouseInput();
@@ -35,6 +41,21 @@ public class InputManager : Singleton<InputManager>
     }
 
     private void OnDisable()
+    {
+        _UnsubscribeEvents();
+    }
+
+    void _OnGameOver(object sender, EventArgs e)
+    {
+        _UnsubscribeEvents();
+    }
+
+    void _OnGameSucceeded(object sender, EventArgs e)
+    {
+        _UnsubscribeEvents();
+    }
+
+    void _UnsubscribeEvents()
     {
         if (OnLookInput != null)
         {

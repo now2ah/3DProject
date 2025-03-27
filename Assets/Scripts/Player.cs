@@ -124,6 +124,11 @@ public class Player : MonoBehaviour
         InputManager.Instance.OnLightInput += _LightSwitch;
     }
 
+    private void OnDisable()
+    {
+        GameManager.Instance.Player = null;
+    }
+
     private void Awake()
     {
         _characterController = GetComponent<CharacterController>();
@@ -157,6 +162,8 @@ public class Player : MonoBehaviour
         
         _mainCamera.fieldOfView = defaultFov;
         rifleObject.SetActive(false);
+
+        OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
     }
 
     void Update()

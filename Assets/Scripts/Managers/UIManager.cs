@@ -16,6 +16,8 @@ public class UIManager : Singleton<UIManager>
 {
     [SerializeField] private GameObject _GameOverPanel;
     [SerializeField] private TextMeshProUGUI _toMainText;
+    [SerializeField] private GameObject _GameSuccessPanel;
+    [SerializeField] private TextMeshProUGUI _toMainSuccessText;
 
     [SerializeField] private Slider _hpSlider;
     [SerializeField] private GameObject _crossHairUI;
@@ -38,7 +40,9 @@ public class UIManager : Singleton<UIManager>
     private void Start()
     {
         GameManager.Instance.OnPlayerSpawned += _OnPlayerSpawned;
+        GameManager.Instance.OnGameStart += OnGameStart;
         GameManager.Instance.OnGameOver += _OnGameOver;
+        GameManager.Instance.OnGameSucceeded += _OnGameSucceeded;
     }
 
     public void SetActiveUI(EUIObject ui, bool isOn)
@@ -60,6 +64,14 @@ public class UIManager : Singleton<UIManager>
     public void LoadMainScene()
     {
         SceneManager.LoadScene(0);
+    }
+
+    private void OnGameStart(object sender, EventArgs e)
+    {
+        if (_hpSlider != null)
+        {
+            _hpSlider.gameObject.SetActive(true);
+        }
     }
 
     void _OnPlayerSpawned(object sender, EventArgs e)
@@ -103,11 +115,25 @@ public class UIManager : Singleton<UIManager>
 
         if (null != _toMainText)
         {
-            StartCoroutine(ToMainCountCoroutine(_toMainText));
+            StartCoroutine(ToMainCountCoroutine(_GameOverPanel, _toMainText));
         }
     }
 
-    IEnumerator ToMainCountCoroutine(TextMeshProUGUI text)
+    void _OnGameSucceeded(object sender, EventArgs e)
+    {
+        if (null != _GameSuccessPanel)
+        {
+            _GameSuccessPanel.SetActive(true);
+        }
+
+        if (null != _toMainText)
+        {
+            StartCoroutine(ToMainCountCoroutine(_GameSuccessPanel, _toMainSuccessText));
+        }
+    }
+
+
+    IEnumerator ToMainCountCoroutine(GameObject panel, TextMeshProUGUI text)
     {
         int count = 3;
         while(count-- > 0)
@@ -115,7 +141,8 @@ public class UIManager : Singleton<UIManager>
             text.text = "To Main " + count;
             yield return new WaitForSeconds(1);
         }
-        _GameOverPanel.SetActive(false);
+        panel.SetActive(false);
+        Destroy(GameManager.Instance.Player.gameObject);
         SceneManager.LoadScene(0);
     }
 }
