@@ -14,12 +14,15 @@ public enum EUIObject
 
 public class UIManager : Singleton<UIManager>
 {
-    [SerializeField] private GameObject _GameOverPanel;
+    [SerializeField] private GameObject _gameOverPanel;
     [SerializeField] private TextMeshProUGUI _toMainText;
-    [SerializeField] private GameObject _GameSuccessPanel;
+    [SerializeField] private GameObject _gameSuccessPanel;
     [SerializeField] private TextMeshProUGUI _toMainSuccessText;
+    [SerializeField] private GameObject _startTutorial;
+    [SerializeField] private GameObject _rifleTutorial;
 
     [SerializeField] private Slider _hpSlider;
+    [SerializeField] private TextMeshProUGUI _hpText;
     [SerializeField] private GameObject _crossHairUI;
     [SerializeField] private GameObject _rifleUI;
     [SerializeField] private GameObject _bulletUI;
@@ -77,6 +80,9 @@ public class UIManager : Singleton<UIManager>
     void _OnPlayerSpawned(object sender, EventArgs e)
     {
         GameManager.Instance.Player.OnPlayerStatsChange += _OnValueChange;
+        GameManager.Instance.Player.OnStartTutorial += _OnStartTutorial;
+        GameManager.Instance.Player.OnPickUpLight += _OnPickUpLight;
+        GameManager.Instance.Player.OnPickUpRifle += _OnPickUpRifle;
     }
 
     void _OnValueChange(object sender, PlayerStatsForUI stats)
@@ -84,13 +90,40 @@ public class UIManager : Singleton<UIManager>
         _UpdateUIs(stats);
     }
 
+    private void _OnStartTutorial(object sender, EventArgs e)
+    {
+        if (_startTutorial != null)
+        {
+            _startTutorial.SetActive(true);
+        }
+    }
+
+    private void _OnPickUpLight(object sender, EventArgs e)
+    {
+        if (_startTutorial != null)
+        {
+            _startTutorial.SetActive(false);
+        }
+    }
+    private void _OnPickUpRifle(object sender, EventArgs e)
+    {
+        if (_rifleTutorial != null)
+        {
+            StartCoroutine(RifleTutorialCoroutine());
+        }
+    }
+
     void _UpdateUIs(PlayerStatsForUI stats)
     {
-        if (_hpSlider != null)
+        if (_hpSlider != null && _hpText != null)
         {
             float hpRatio = stats.curHP / stats.maxHP;
 
             _hpSlider.value = hpRatio;
+
+            string hpText = (hpRatio * 100f).ToString("N0") + " %";
+
+            _hpText.text = hpText;
         }
 
         if (stats.hasRifle)
@@ -108,30 +141,34 @@ public class UIManager : Singleton<UIManager>
 
     void _OnGameOver(object sender, EventArgs e)
     {
-        if (null != _GameOverPanel)
+        if (null != _gameOverPanel)
         {
-            _GameOverPanel.SetActive(true);
+            _gameOverPanel.SetActive(true);
+        }
+
+        if (null != _hpSlider)
+        {
+            _hpSlider.gameObject.SetActive(false);
         }
 
         if (null != _toMainText)
         {
-            StartCoroutine(ToMainCountCoroutine(_GameOverPanel, _toMainText));
+            StartCoroutine(ToMainCountCoroutine(_gameOverPanel, _toMainText));
         }
     }
 
     void _OnGameSucceeded(object sender, EventArgs e)
     {
-        if (null != _GameSuccessPanel)
+        if (null != _gameSuccessPanel)
         {
-            _GameSuccessPanel.SetActive(true);
+            _gameSuccessPanel.SetActive(true);
         }
 
         if (null != _toMainText)
         {
-            StartCoroutine(ToMainCountCoroutine(_GameSuccessPanel, _toMainSuccessText));
+            StartCoroutine(ToMainCountCoroutine(_gameSuccessPanel, _toMainSuccessText));
         }
     }
-
 
     IEnumerator ToMainCountCoroutine(GameObject panel, TextMeshProUGUI text)
     {
@@ -144,5 +181,15 @@ public class UIManager : Singleton<UIManager>
         panel.SetActive(false);
         Destroy(GameManager.Instance.Player.gameObject);
         SceneManager.LoadScene(0);
+    }
+
+    IEnumerator RifleTutorialCoroutine()
+    {
+        if (_rifleTutorial != null)
+        {
+            _rifleTutorial.SetActive(true);
+            yield return new WaitForSeconds(3.0f);
+            _rifleTutorial.SetActive(false);
+        }
     }
 }

@@ -11,6 +11,7 @@ TagManager:
   - Seperatable
   - StartPosition
   - Goal
+  - TutorialObject
   layers:
   - Default
   - TransparentFX

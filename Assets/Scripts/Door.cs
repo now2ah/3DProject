@@ -33,6 +33,16 @@ public class Door : MonoBehaviour
         }
     }
 
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.tag == "Player")
+        {
+            _activator = null;
+
+            _isNear = false;
+        }
+    }
+
     void _OnInteraction(object sender, EventArgs e)
     {
         if (_isNear)
@@ -68,7 +78,7 @@ public class Door : MonoBehaviour
             _isOpened = false;
         }
 
-        
+        AudioManager.Instance.PlaySfx(AudioManager.ESfx.DOOR);
     }
 
     //IEnumerator OpenDoorInCoroutine()

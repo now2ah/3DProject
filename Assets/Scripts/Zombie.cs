@@ -20,7 +20,7 @@ public class Zombie : Enemy
 
     public GameObject attackTrigger;
 
-    private ZombieStateMachine _stateMachine;
+    private StateMachine _stateMachine;
     private ZombieIdleState _idleState;
     private ZombieRoamState _roamState;
     private ZombieChaseState _chaseState;
@@ -32,6 +32,8 @@ public class Zombie : Enemy
     private bool _isChase = false;
     private bool _isAttack = false;
 
+    public bool IsAttack => _isAttack;
+
     private float distanceToTarget;
 
     public Transform Target { get { return _target; } }
@@ -39,6 +41,7 @@ public class Zombie : Enemy
     private Coroutine _roamCoroutine = null;
     private Coroutine _attackCoroutine = null;
     private Coroutine _dieCoroutine = null;
+    private Coroutine _idleSoundCoroutine = null;
 
     private new void Awake()
     {
@@ -56,7 +59,7 @@ public class Zombie : Enemy
 
         _navMeshAgent.speed = walkSpeed;
         _navMeshAgent.angularSpeed = angularSpeed;
-        _stateMachine = gameObject.AddComponent<ZombieStateMachine>();
+        _stateMachine = gameObject.AddComponent<StateMachine>();
         _idleState = new ZombieIdleState(this);
         _roamState = new ZombieRoamState(this);
         _chaseState = new ZombieChaseState(this);
@@ -156,16 +159,31 @@ public class Zombie : Enemy
             _roamCoroutine = StartCoroutine(RoamCoroutine(callBack));
     }
 
+    public void PlayIdleSound()
+    {
+        if (null == _idleSoundCoroutine)
+        {
+            _idleSoundCoroutine = StartCoroutine(PlayIdleSoundCoroutine());
+        }
+    }
+
+    IEnumerator PlayIdleSoundCoroutine()
+    {
+        AudioManager.Instance.PlaySfxAt(AudioManager.ESfx.ZOMBIE_IDLE, transform.position);
+        yield return new WaitForSeconds(35f);
+        _idleSoundCoroutine = null;
+    }
+
     IEnumerator RoamCoroutine(UnityAction callBack)
     {
         if (_navMeshAgent != null)
             _navMeshAgent.speed = walkSpeed;
-        float randomTime = UnityEngine.Random.Range(0, 5f);
-        float randomX = UnityEngine.Random.Range(-5, 6);
-        float randomZ = UnityEngine.Random.Range(-5, 6);
+        float randomTime = UnityEngine.Random.Range(2f, 4f);
+        float randomX = UnityEngine.Random.Range(-3, 4);
+        float randomZ = UnityEngine.Random.Range(-3, 4);
         Vector3 roamPosition = new Vector3(randomX, 0f, randomZ);
         if (_navMeshAgent != null)
-            _navMeshAgent.destination = roamPosition;
+            _navMeshAgent.destination = transform.position + roamPosition;
         yield return new WaitForSeconds(randomTime);
         if (_navMeshAgent != null)
             _navMeshAgent.ResetPath();
@@ -197,14 +215,19 @@ public class Zombie : Enemy
     public void Attack(Transform target, UnityAction callBack)
     {
         if (_attackCoroutine == null)
+        {
+            Debug.Log("Hitted");
             _attackCoroutine = StartCoroutine(AttackCoroutine(callBack));
+        }
     }
 
     IEnumerator AttackCoroutine(UnityAction callBack)
     {
         if (_animator != null)
             _animator.SetTrigger("AttackTrigger");
-        float animationLength = _animator.GetNextAnimatorStateInfo(0).length;
+        yield return new WaitForSeconds(0.1f);
+        float animationLength = 2.6f;
+        //float animationLength = _animator.GetNextAnimatorStateInfo(0).length;
         float deliverDamageTime = 0.3f;
         yield return new WaitForSeconds(deliverDamageTime);
         if (_target.TryGetComponent<Player>(out Player player))
@@ -213,6 +236,7 @@ public class Zombie : Enemy
             {
                 player.BeHit();
                 player.ApplyDamage(attackDamage);
+                AudioManager.Instance.PlaySfx(AudioManager.ESfx.ZOMBIE_ATTACK);
             }
         }
         yield return new WaitForSeconds(animationLength - deliverDamageTime);

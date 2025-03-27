@@ -6,7 +6,8 @@ public class AudioManager : Singleton<AudioManager>
 {
     public enum eBgm
     {
-
+        BGM_AMBIENCE,
+        BGM_MAIN
     }
 
     public enum ESfx
@@ -15,6 +16,12 @@ public class AudioManager : Singleton<AudioManager>
         PICKUP,
         EQUIP,
         FIRE,
+        ZOMBIE_IDLE,
+        ZOMBIE_ATTACK,
+        DOOR,
+        UI_CLICK,
+        CLICK,
+        GAMEOVER
     }
 
     public AudioClip[] audioClips;
@@ -40,12 +47,8 @@ public class AudioManager : Singleton<AudioManager>
             _sfxAudioSources[i].loop = false;
         }
 
-        DontDestroyOnLoad(gameObject);
-    }
-
-    private void Start()
-    {
         _SetAudioDictionary();
+        DontDestroyOnLoad(gameObject);
     }
 
     public void PlayBgm(eBgm bgm)
@@ -53,11 +56,22 @@ public class AudioManager : Singleton<AudioManager>
         if (null == _bgmAudioSource)
             return;
 
+        _bgmAudioSource.Stop();
+
         _bgmAudioSource.clip = _audioDic[Enum.GetName(typeof(eBgm), bgm)];
 
         if (null == _bgmAudioSource.clip) { Debug.Log("can't find bgm audio clip"); return; }
 
+        _bgmAudioSource.loop = true;
         _bgmAudioSource.Play();
+    }
+
+    public void StopBgm()
+    {
+        if (null == _bgmAudioSource)
+            return;
+
+        _bgmAudioSource.Stop();
     }
 
     public void PlaySfx(ESfx sfx)

@@ -1,11 +1,17 @@
 fileFormatVersion: 2
-guid: 2fbca450abe89954aa6f67becef10709
+guid: e843143606f32e84e8a43e459d9675f7
 labels:
 - usfx
 - imphenzia
 - weapon
+- foley
+- handling
+- operate
 - reload
-- stereo
+- mono
+- gun
+- handgun
+- pistol
 AudioImporter:
   serializedVersion: 6
   defaultSettings:

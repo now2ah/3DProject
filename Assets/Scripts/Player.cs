@@ -37,7 +37,7 @@ public class Player : MonoBehaviour
     public float zoomFov = 30.0f;
 
     [Header("Status")]
-    public float maxHP = 10f;
+    public float maxHP = 15f;
 
     [Header("Move")]
     public float jumpHeight = 2f;
@@ -110,6 +110,9 @@ public class Player : MonoBehaviour
     private Coroutine _shootDelayCoroutine = null;
 
     public event EventHandler<PlayerStatsForUI> OnPlayerStatsChange;
+    public event EventHandler OnStartTutorial;
+    public event EventHandler OnPickUpLight;
+    public event EventHandler OnPickUpRifle;
 
     private void OnEnable()
     {
@@ -127,6 +130,7 @@ public class Player : MonoBehaviour
     private void OnDisable()
     {
         GameManager.Instance.Player = null;
+        _UnsubscribeEvents();
     }
 
     private void Awake()
@@ -182,6 +186,13 @@ public class Player : MonoBehaviour
         {
             _isNearItem = true;
             _PickUpItem(other);
+        }
+        else if (other.tag == "TutorialObject")
+        {
+            if (other.name == "StartTutorial" && !_HasItem(EItemType.FLASH_LIGHT))
+            {
+                OnStartTutorial?.Invoke(this, EventArgs.Empty);
+            }
         }
     }
 
@@ -251,6 +262,40 @@ public class Player : MonoBehaviour
         return new PlayerStatsForUI(maxHP, _currentHP, _hasRifle, _isAiming, _bulletCount);
     }
 
+    void _UnsubscribeEvents()
+    {
+        if (OnPlayerStatsChange != null)
+        {
+            foreach (var d in OnPlayerStatsChange.GetInvocationList())
+            {
+                OnPlayerStatsChange -= d as EventHandler<PlayerStatsForUI>;
+            }
+        }
+
+        if (OnStartTutorial != null)
+        {
+            foreach (var d in OnStartTutorial.GetInvocationList())
+            {
+                OnStartTutorial -= d as EventHandler;
+            }
+        }
+
+        if (OnPickUpLight != null)
+        {
+            foreach (var d in OnPickUpLight.GetInvocationList())
+            {
+                OnPickUpLight -= d as EventHandler;
+            }
+        }
+
+        if (OnPickUpRifle != null)
+        {
+            foreach (var d in OnPickUpRifle.GetInvocationList())
+            {
+                OnPickUpRifle -= d as EventHandler;
+            }
+        }
+    }
 
     void _UpdateCameraPosition()
     {
@@ -409,8 +454,10 @@ public class Player : MonoBehaviour
                     if (hits[i].collider.transform.tag == "Seperatable")
                     {
                         hits[i].collider.transform.gameObject.SetActive(false);
+                        enemy.ApplyDamage(rifleDamage * 2f);
                     }
-                    //hits[i].transform.gameObject.SetActive(false);
+
+                    AudioManager.Instance.PlaySfx(AudioManager.ESfx.FIRE);
                     hitCount--;
                 }
             }
@@ -467,7 +514,7 @@ public class Player : MonoBehaviour
 
         if (_hasRifle)
         {
-            //audioSource.PlayOneShot(audioClipEquipWeapon);
+            AudioManager.Instance.PlaySfx(AudioManager.ESfx.EQUIP);
             _animator.SetTrigger("IsWeaponChange");
             rifleObject.SetActive(true);
         }
@@ -516,6 +563,7 @@ public class Player : MonoBehaviour
         yield return new WaitForSeconds(untilPickupLength);
         item.gameObject.SetActive(false);
         _isNearItem = false;
+        AudioManager.Instance.PlaySfx(AudioManager.ESfx.PICKUP);
         yield return new WaitForSeconds(animationLength - untilPickupLength);
         
         if (_itemList != null)
@@ -536,6 +584,7 @@ public class Player : MonoBehaviour
         if (item.ItemType == EItemType.RIFLE)
         {
             _hasRifle = true;
+            OnPickUpRifle?.Invoke(this, EventArgs.Empty);
         }
 
         if (item.ItemType == EItemType.BULLET)
@@ -543,14 +592,26 @@ public class Player : MonoBehaviour
             if (item.TryGetComponent<Bullet>(out Bullet bullet))
             {
                 _bulletCount += bullet.amount;
-                OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
+                OnPlayerStatsChange?.Invoke(this, _GetPlayerStats());
             }
         }
 
         if (item.ItemType == EItemType.FLASH_LIGHT)
         {
             _hasFlash = true;
+            OnPickUpLight?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    bool _HasItem(EItemType type)
+    {
+        foreach(var item in _itemList)
+        {
+            if (item.ItemType == type)
+                return true;
+        }
+
+        return false;
     }
 
     void _Jump(object sender, EventArgs e)
@@ -574,6 +635,7 @@ public class Player : MonoBehaviour
         {
             _isFlashOn = !_isFlashOn;
             flashLightObj.SetActive(_isFlashOn);
+            AudioManager.Instance.PlaySfx(AudioManager.ESfx.CLICK);
         }
     }
 

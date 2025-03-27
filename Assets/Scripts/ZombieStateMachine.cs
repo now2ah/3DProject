@@ -14,6 +14,7 @@ public class ZombieIdleState : State
     {
         _zombie.ChangeStateValue(Zombie.EZombieState.IDLE, true);
         _zombie.StopMove();
+        _zombie.PlayIdleSound();
     }
 
     public override void UpdateState()
@@ -111,7 +112,7 @@ public class ZombieChaseState : State
 
         _zombie.Chase(_zombie.Target);
 
-        if (_zombie.IsInAttackRange())
+        if (_zombie.IsInAttackRange() && !_zombie.IsAttack)
         {
             _zombie.ChangeState(Zombie.EZombieState.ATTACK);
         }
@@ -135,15 +136,18 @@ public class ZombieAttackState : State
     public override void EnterState()
     {
         _zombie.ChangeStateValue(Zombie.EZombieState.ATTACK, true);
-    }
 
-    public override void UpdateState()
-    {
         _zombie.Attack(_zombie.Target, () =>
         {
             _zombie.ChangeState(Zombie.EZombieState.IDLE);
         });
     }
+
+    public override void UpdateState()
+    {
+        
+    }
+
     public override void EndState()
     {
         _zombie.ChangeStateValue(Zombie.EZombieState.ATTACK, false);
@@ -175,7 +179,7 @@ public class ZombieDieState : State
     }
 }
 
-public class ZombieStateMachine : StateMachine
-{
+//public class ZombieStateMachine : StateMachine
+//{
 
-}
+//}

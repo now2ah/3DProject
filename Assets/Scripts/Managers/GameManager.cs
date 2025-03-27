@@ -17,6 +17,7 @@ public class GameManager : Singleton<GameManager>
 
     public Player Player { get { return _player; } set { _player = value; } }
 
+    public event EventHandler OnManagersLoaded;
     public event EventHandler OnPlayerSpawned;
     public event EventHandler OnGameStart;
     public event EventHandler OnGameOver;
@@ -29,25 +30,76 @@ public class GameManager : Singleton<GameManager>
 
     private void Start()
     {
-        _LoadManagers();
+        StartCoroutine(LoadManagerCoroutine());
     }
+
+    private void OnDisable()
+    {
+        _UnsubscribeEvents();
+    }
+
 
     public void GameStart()
     {
         _InitiateGame();
         OnGameStart.Invoke(this, EventArgs.Empty);
+        AudioManager.Instance.PlayBgm(AudioManager.eBgm.BGM_AMBIENCE);
     }
 
     public void GameOver()
     {
         isRunning = false;
         OnGameOver?.Invoke(this, EventArgs.Empty);
+        AudioManager.Instance.PlaySfx(AudioManager.ESfx.GAMEOVER);
     }
 
     public void GameSucceeded()
     {
         isRunning = false;
         OnGameSucceeded?.Invoke(this, EventArgs.Empty);
+    }
+
+    void _UnsubscribeEvents()
+    {
+        if (OnManagersLoaded != null)
+        {
+            foreach (var d in OnManagersLoaded.GetInvocationList())
+            {
+                OnManagersLoaded -= d as EventHandler;
+            }
+        }
+
+        if (OnPlayerSpawned != null)
+        {
+            foreach (var d in OnPlayerSpawned.GetInvocationList())
+            {
+                OnPlayerSpawned -= d as EventHandler;
+            }
+        }
+
+        if (OnGameStart != null)
+        {
+            foreach (var d in OnGameStart.GetInvocationList())
+            {
+                OnGameStart -= d as EventHandler;
+            }
+        }
+
+        if (OnGameOver != null)
+        {
+            foreach (var d in OnGameOver.GetInvocationList())
+            {
+                OnGameOver -= d as EventHandler;
+            }
+        }
+
+        if (OnGameSucceeded != null)
+        {
+            foreach (var d in OnGameSucceeded.GetInvocationList())
+            {
+                OnGameSucceeded -= d as EventHandler;
+            }
+        }
     }
 
     void _InitiateGame()
@@ -60,6 +112,12 @@ public class GameManager : Singleton<GameManager>
         }
     }
 
+    IEnumerator LoadManagerCoroutine()
+    {
+        yield return new WaitForSeconds(0.1f);
+        _LoadManagers();
+    }
+
     void _LoadManagers()
     {
         if (_managers.Length > 0)
@@ -68,6 +126,7 @@ public class GameManager : Singleton<GameManager>
             {
                 Instantiate(obj);
             }
+            OnManagersLoaded?.Invoke(this, EventArgs.Empty);
         }
     }
 

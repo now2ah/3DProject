@@ -46,7 +46,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   audioClips:
   - {fileID: 8300000, guid: 35eb7394b28dab74b826381b206a675b, type: 3}
-  - {fileID: 8300000, guid: 2fbca450abe89954aa6f67becef10709, type: 3}
-  - {fileID: 8300000, guid: b663de5596f3df846b390034bad48468, type: 3}
-  - {fileID: 8300000, guid: 0861dcfc255f9404db3e1860d3c29db1, type: 3}
+  - {fileID: 8300000, guid: e843143606f32e84e8a43e459d9675f7, type: 3}
+  - {fileID: 8300000, guid: 0e1540b66063b7d499945846104334da, type: 3}
+  - {fileID: 8300000, guid: 45fedb22d04f5454f919380706ba3844, type: 3}
+  - {fileID: 8300000, guid: 2e911b730e733a344bfdf093f62ebd4c, type: 3}
+  - {fileID: 8300000, guid: 7e5e9c5268c90a3418872a045b97b6f3, type: 3}
+  - {fileID: 8300000, guid: 6fc2ab0ee7dfc2b41868514331372c3c, type: 3}
+  - {fileID: 8300000, guid: 576211d6b5b4eed4bbf6f24f53e70103, type: 3}
+  - {fileID: 8300000, guid: 10ba74d94bcd7824e96f18b0c24093af, type: 3}
+  - {fileID: 8300000, guid: 118ec8e8d83478743828ee88721ff24d, type: 3}
+  - {fileID: 8300000, guid: 4f2372d0d4383dc46b1309d9b4536f84, type: 3}
+  - {fileID: 8300000, guid: aa9af424559aa9a458dce72ea20a621c, type: 3}
   sfxChannel: 5

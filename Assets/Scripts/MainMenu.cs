@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -12,10 +13,17 @@ public class MainMenu : MonoBehaviour
     {
         Cursor.lockState = CursorLockMode.Confined;
         SceneManager.sceneLoaded += SceneManager_sceneLoaded;
+        GameManager.Instance.OnManagersLoaded += _OnManagersLoaded;
+    }
+
+    private void _OnManagersLoaded(object sender, System.EventArgs e)
+    {
+        AudioManager.Instance.PlayBgm(AudioManager.eBgm.BGM_MAIN);
     }
 
     public void GameStart()
     {
+        AudioManager.Instance.PlaySfx(AudioManager.ESfx.UI_CLICK);
         SceneManager.LoadScene(1);
     }
 
@@ -27,8 +35,10 @@ public class MainMenu : MonoBehaviour
         }
     }
 
+    //화이팅^^ 하하~
     public void ExitGame()
     {
+        AudioManager.Instance.PlaySfx(AudioManager.ESfx.UI_CLICK);
         Application.Quit();
     }
 }
