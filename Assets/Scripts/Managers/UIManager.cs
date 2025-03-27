@@ -202,6 +202,11 @@ public class UIManager : Singleton<UIManager>
             _gameOverPanel.SetActive(true);
         }
 
+        if (null != _rifleUI)
+        {
+            _rifleUI.SetActive(false);
+        }
+
         if (null != _bulletUI)
         {
             _bulletUI.SetActive(false);
