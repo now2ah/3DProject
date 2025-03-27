@@ -57,6 +57,7 @@ public class GameManager : Singleton<GameManager>
     {
         isRunning = false;
         OnGameSucceeded?.Invoke(this, EventArgs.Empty);
+        AudioManager.Instance.PlaySfx(AudioManager.ESfx.SUCCESS);
     }
 
     void _UnsubscribeEvents()

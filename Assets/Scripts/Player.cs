@@ -103,6 +103,10 @@ public class Player : MonoBehaviour
     private bool _hasFlash = false;
     private bool _isFlashOn = false;
 
+    //ambience sound effect
+    private float _curTime = 0f;
+    private float _nextSfxTime = 1f;
+
     //coroutine
     private Coroutine _beHitCoroutine = null;
     private Coroutine _checkPickUpCoroutine = null;
@@ -172,6 +176,8 @@ public class Player : MonoBehaviour
 
     void Update()
     {
+        _curTime += Time.deltaTime;
+        _PlayZombieAmbienceSounds();
         _SetAnimationParams();
     }
 
@@ -654,6 +660,30 @@ public class Player : MonoBehaviour
             _isDead = true;
             _animator.SetTrigger("IsDead");
             GameManager.Instance.GameOver();
+        }
+    }
+
+    void _PlayZombieAmbienceSounds()
+    {
+        if (_curTime > _nextSfxTime)
+        {
+            _nextSfxTime = UnityEngine.Random.Range(5f, 15f);
+            int clipNum = UnityEngine.Random.Range(1, 4);
+
+            if (clipNum == 1)
+            {
+                AudioManager.Instance.PlaySfxAt(AudioManager.ESfx.GROWL1, transform.position + transform.forward * -1f * 3f);
+            }
+            else if (clipNum == 2)
+            {
+                AudioManager.Instance.PlaySfxAt(AudioManager.ESfx.GROWL2, transform.position + transform.forward * -1f * 3f);
+            }
+            else if (clipNum == 3)
+            {
+                AudioManager.Instance.PlaySfxAt(AudioManager.ESfx.GROWL3, transform.position + transform.forward * -1f * 3f);
+            }
+            
+            _curTime = 0f;
         }
     }
 

@@ -21,7 +21,11 @@ public class AudioManager : Singleton<AudioManager>
         DOOR,
         UI_CLICK,
         CLICK,
-        GAMEOVER
+        GAMEOVER,
+        SUCCESS,
+        GROWL1,
+        GROWL2,
+        GROWL3
     }
 
     public AudioClip[] audioClips;
