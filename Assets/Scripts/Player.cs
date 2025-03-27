@@ -115,6 +115,8 @@ public class Player : MonoBehaviour
 
     public event EventHandler<PlayerStatsForUI> OnPlayerStatsChange;
     public event EventHandler OnStartTutorial;
+    public event EventHandler OnJumpTutorial;
+    public event EventHandler OnJumpTutorialEnd;
     public event EventHandler OnPickUpLight;
     public event EventHandler OnPickUpRifle;
     public event EventHandler OnFire;
@@ -199,6 +201,14 @@ public class Player : MonoBehaviour
             if (other.name == "StartTutorial" && !_HasItem(EItemType.FLASH_LIGHT))
             {
                 OnStartTutorial?.Invoke(this, EventArgs.Empty);
+            }
+            else if (other.name == "JumpTutorial")
+            {
+                OnJumpTutorial?.Invoke(this, EventArgs.Empty);
+            }
+            else if (other.name == "JumpTutorialEnd")
+            {
+                OnJumpTutorialEnd?.Invoke(this, EventArgs.Empty);
             }
         }
     }

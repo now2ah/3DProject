@@ -19,6 +19,7 @@ public class UIManager : Singleton<UIManager>
     [SerializeField] private GameObject _gameSuccessPanel;
     [SerializeField] private TextMeshProUGUI _toMainSuccessText;
     [SerializeField] private GameObject _startTutorial;
+    [SerializeField] private GameObject _jumpTutorial;
     [SerializeField] private GameObject _rifleTutorial;
     [SerializeField] private GameObject _lightTutorial;
     [SerializeField] private GameObject _pausePanel;
@@ -107,6 +108,8 @@ public class UIManager : Singleton<UIManager>
     {
         GameManager.Instance.Player.OnPlayerStatsChange += _OnValueChange;
         GameManager.Instance.Player.OnStartTutorial += _OnStartTutorial;
+        GameManager.Instance.Player.OnJumpTutorial += _OnJumpTutorial;
+        GameManager.Instance.Player.OnJumpTutorialEnd += _OnJumpTutorialEnd;
         GameManager.Instance.Player.OnPickUpLight += _OnPickUpLight;
         GameManager.Instance.Player.OnPickUpRifle += _OnPickUpRifle;
     }
@@ -121,6 +124,22 @@ public class UIManager : Singleton<UIManager>
         if (_startTutorial != null)
         {
             _startTutorial.SetActive(true);
+        }
+    }
+
+    private void _OnJumpTutorial(object sender, EventArgs e)
+    {
+        if (_jumpTutorial != null)
+        {
+            _jumpTutorial.SetActive(true);
+        }
+    }
+
+    private void _OnJumpTutorialEnd(object sender, EventArgs e)
+    {
+        if (_jumpTutorial != null)
+        {
+            _jumpTutorial.SetActive(false);
         }
     }
 

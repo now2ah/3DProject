@@ -192,10 +192,10 @@ public class Zombie : Enemy
         float randomX = UnityEngine.Random.Range(-3, 4);
         float randomZ = UnityEngine.Random.Range(-3, 4);
         Vector3 roamPosition = new Vector3(randomX, 0f, randomZ);
-        if (_navMeshAgent != null)
+        if (_navMeshAgent != null && _navMeshAgent.isOnNavMesh)
             _navMeshAgent.destination = transform.position + roamPosition;
         yield return new WaitForSeconds(randomTime);
-        if (_navMeshAgent != null)
+        if (_navMeshAgent != null && _navMeshAgent.isOnNavMesh)
             _navMeshAgent.ResetPath();
 
         if (!_isDead)
