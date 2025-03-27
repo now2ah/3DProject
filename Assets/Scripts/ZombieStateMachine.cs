@@ -105,10 +105,10 @@ public class ZombieChaseState : State
 
     public override void UpdateState()
     {
-        if (!_zombie.IsDetectedPlayer() && !_zombie.IsAttacked)
-        {
-            _zombie.ChangeState(Zombie.EZombieState.IDLE);
-        }
+        //if (!_zombie.IsDetectedPlayer() && !_zombie.IsAttacked)
+        //{
+        //    _zombie.ChangeState(Zombie.EZombieState.IDLE);
+        //}
 
         _zombie.Chase(_zombie.Target);
 

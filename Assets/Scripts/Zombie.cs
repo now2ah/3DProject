@@ -73,6 +73,12 @@ public class Zombie : Enemy
         _stateMachine.StartState(_idleState);
     }
 
+    private void OnDisable()
+    {
+        GameManager.Instance.Player.OnFire -= _OnFire;
+        GameManager.Instance.OnPlayerSpawned -= _OnPlayerSpawned;
+    }
+
     public void ChangeState(EZombieState newState)
     {
         State state = null;
@@ -196,8 +202,11 @@ public class Zombie : Enemy
 
     public void Chase(Transform target)
     {
-        _navMeshAgent.speed = runSpeed;
-        _navMeshAgent.destination = target.position;
+        if (_navMeshAgent != null)
+        {
+            _navMeshAgent.speed = runSpeed;
+            _navMeshAgent.destination = target.position;
+        }
     }
 
     public bool IsInAttackRange()
@@ -247,6 +256,18 @@ public class Zombie : Enemy
     void _OnPlayerSpawned(object sender, EventArgs e)
     {
         _target = GameManager.Instance.Player.transform;
+        GameManager.Instance.Player.OnFire += _OnFire;
+    }
+
+    private void _OnFire(object sender, EventArgs e)
+    {
+        if (_target != null)
+        {
+            if (Vector3.Distance(_target.position, transform.position) < 10f)
+            {
+                ChangeState(EZombieState.CHASE);
+            }
+        }
     }
 
     void _SetAnimationParam()

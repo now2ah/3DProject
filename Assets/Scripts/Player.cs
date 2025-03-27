@@ -117,6 +117,7 @@ public class Player : MonoBehaviour
     public event EventHandler OnStartTutorial;
     public event EventHandler OnPickUpLight;
     public event EventHandler OnPickUpRifle;
+    public event EventHandler OnFire;
 
     private void OnEnable()
     {
@@ -301,6 +302,14 @@ public class Player : MonoBehaviour
                 OnPickUpRifle -= d as EventHandler;
             }
         }
+
+        if (OnFire != null)
+        {
+            foreach (var d in OnFire.GetInvocationList())
+            {
+                OnFire -= d as EventHandler;
+            }
+        }
     }
 
     void _UpdateCameraPosition()
@@ -462,11 +471,12 @@ public class Player : MonoBehaviour
                         hits[i].collider.transform.gameObject.SetActive(false);
                         enemy.ApplyDamage(rifleDamage * 2f);
                     }
-
-                    AudioManager.Instance.PlaySfx(AudioManager.ESfx.FIRE);
                     hitCount--;
                 }
             }
+
+            OnFire?.Invoke(this, EventArgs.Empty);
+            AudioManager.Instance.PlaySfx(AudioManager.ESfx.FIRE);
 
             muzzleFlashParticle.gameObject.SetActive(true);
             muzzleFlashParticle.Play(true);
@@ -477,6 +487,7 @@ public class Player : MonoBehaviour
             }
 
             _bulletCount--;
+
             OnPlayerStatsChange.Invoke(this, _GetPlayerStats());
         }
     }
