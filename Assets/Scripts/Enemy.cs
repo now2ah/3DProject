@@ -24,6 +24,7 @@ public abstract class Enemy : MonoBehaviour
     protected NavMeshAgent _navMeshAgent;
     protected Animator _animator;
     protected Transform _target;
+    protected ZombieHitEffect _hitEffect;
 
     public NavMeshAgent NavMeshAgent { get { return _navMeshAgent; } }
     public Animator Animator { get { return _animator; } }
@@ -33,6 +34,7 @@ public abstract class Enemy : MonoBehaviour
         _rigidBody = GetComponent<Rigidbody>();
         _navMeshAgent = GetComponent<NavMeshAgent>();
         _animator = GetComponent<Animator>();
+        _hitEffect = GetComponent<ZombieHitEffect>();
     }
 
     public void ApplyDamage(float damage)
@@ -43,6 +45,7 @@ public abstract class Enemy : MonoBehaviour
                 _isAttacked = true;
 
             _currentHP -= damage;
+            _hitEffect.StartHitFlash();
 
             if (_currentHP <= 0) { _Die(); }
         }

@@ -1,8 +1,6 @@
 using System;
 using System.Collections;
-using Unity.AI.Navigation;
 using UnityEngine;
-using UnityEngine.AI;
 using UnityEngine.Events;
 
 public class Zombie : Enemy

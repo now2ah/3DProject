@@ -3236,6 +3236,10 @@ PrefabInstance:
       propertyPath: cameraTransform
       value: 
       objectReference: {fileID: 330585546}
+    - target: {fileID: 5276653720018320553, guid: 3f096d97811dd274d9d0ff9128deee93, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6201698017922138827, guid: 3f096d97811dd274d9d0ff9128deee93, type: 3}
       propertyPath: m_IsActive
       value: 1
@@ -3246,7 +3250,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7746467677103773916, guid: 3f096d97811dd274d9d0ff9128deee93, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8606714071982555571, guid: 3f096d97811dd274d9d0ff9128deee93, type: 3}
       propertyPath: m_WarningMessage
