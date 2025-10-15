@@ -329,18 +329,16 @@ public class Player : MonoBehaviour
 
         Vector3 direction = new Vector3(0, 0, -_currentCamDistance);
 
-        Vector3 rayOrigin = transform.position + transform.up * 2f;
-        Vector3 rayDirection = _playerLookTransform.position + thirdPersonOffset + Quaternion.Euler(_pitch, _yaw, 0) * direction;
+        Vector3 headPosition = transform.position + transform.up * 2f;
+        Vector3 cameraPosition = _playerLookTransform.position + thirdPersonOffset + Quaternion.Euler(_pitch, _yaw, 0) * direction;
 
-        Ray ray = new Ray(rayOrigin, rayDirection);
-
-        if (Physics.Linecast(rayOrigin, rayDirection, out RaycastHit hit))
+        if (Physics.Linecast(headPosition, cameraPosition, out RaycastHit hit))
         {
             _cameraTransform.position = hit.point;
         }
         else
         {
-            _cameraTransform.position = _playerLookTransform.position + thirdPersonOffset + Quaternion.Euler(_pitch, _yaw, 0) * direction;
+            _cameraTransform.position = cameraPosition;
         }
 
         _cameraTransform.LookAt(_playerLookTransform.position + new Vector3(0, thirdPersonOffset.y, 0));
